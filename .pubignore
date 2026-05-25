@@ -1,2 +1,10 @@
+# Internal / tooling
 Decisions.md
+data_grid_spec.md
 .claude/
+*.iml
+
+# Build artifacts
+build/
+.dart_tool/
+coverage/
