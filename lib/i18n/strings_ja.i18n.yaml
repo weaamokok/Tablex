@@ -1,0 +1,34 @@
+grid:
+  noData: データなし
+
+pagination:
+  showing: "{total}件中{start}–{end}件を表示"
+  noResults: 結果なし
+  previous: 前へ
+  next: 次へ
+
+filters:
+  clearAll: すべてクリア
+  cancel: キャンセル
+  apply: 適用
+  operators:
+    equals: と等しい
+    notEquals: と等しくない
+    contains: を含む
+    notContains: を含まない
+    startsWith: で始まる
+    endsWith: で終わる
+    greaterThan: より大きい
+    greaterThanOrEqual: 以上
+    lessThan: より小さい
+    lessThanOrEqual: 以下
+    between: の間
+    isEmpty: 空
+    isNotEmpty: 空ではない
+
+selection:
+  selected: "{count}件選択中"
+  clear: クリア
+
+columnManager:
+  manageColumns: 列の管理

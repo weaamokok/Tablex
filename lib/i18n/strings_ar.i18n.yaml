@@ -1,0 +1,34 @@
+grid:
+  noData: لا توجد بيانات
+
+pagination:
+  showing: "عرض {start}–{end} من {total}"
+  noResults: لا توجد نتائج
+  previous: السابق
+  next: التالي
+
+filters:
+  clearAll: مسح الكل
+  cancel: إلغاء
+  apply: تطبيق
+  operators:
+    equals: يساوي
+    notEquals: لا يساوي
+    contains: يحتوي على
+    notContains: لا يحتوي على
+    startsWith: يبدأ بـ
+    endsWith: ينتهي بـ
+    greaterThan: أكبر من
+    greaterThanOrEqual: أكبر من أو يساوي
+    lessThan: أصغر من
+    lessThanOrEqual: أصغر من أو يساوي
+    between: بين
+    isEmpty: فارغ
+    isNotEmpty: غير فارغ
+
+selection:
+  selected: "تم تحديد {count}"
+  clear: مسح
+
+columnManager:
+  manageColumns: إدارة الأعمدة

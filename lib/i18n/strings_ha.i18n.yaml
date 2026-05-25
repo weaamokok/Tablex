@@ -1,0 +1,35 @@
+# Hausa — most widely spoken indigenous language in Nigeria
+grid:
+  noData: Babu bayani
+
+pagination:
+  showing: "Ana nuna {start}–{end} daga cikin {total}"
+  noResults: Babu sakamako
+  previous: Na baya
+  next: Na gaba
+
+filters:
+  clearAll: Share duk
+  cancel: Soke
+  apply: Yi
+  operators:
+    equals: daidai
+    notEquals: ba daidai ba
+    contains: "yana ƙunshe da"
+    notContains: "ba ya ƙunshe da"
+    startsWith: yana farawa da
+    endsWith: yana ƙarewa da
+    greaterThan: ya fi
+    greaterThanOrEqual: ya fi ko daidai
+    lessThan: "ya ƙasa da"
+    lessThanOrEqual: "ya ƙasa ko daidai"
+    between: tsakanin
+    isEmpty: fanko
+    isNotEmpty: ba fanko ba
+
+selection:
+  selected: "An zaɓi {count}"
+  clear: Share
+
+columnManager:
+  manageColumns: "Sarrafa ginshiƙai"

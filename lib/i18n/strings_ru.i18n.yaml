@@ -1,0 +1,34 @@
+grid:
+  noData: Нет данных
+
+pagination:
+  showing: "Показано {start}–{end} из {total}"
+  noResults: Нет результатов
+  previous: Назад
+  next: Вперёд
+
+filters:
+  clearAll: Очистить всё
+  cancel: Отмена
+  apply: Применить
+  operators:
+    equals: равно
+    notEquals: не равно
+    contains: содержит
+    notContains: не содержит
+    startsWith: начинается с
+    endsWith: заканчивается на
+    greaterThan: больше
+    greaterThanOrEqual: больше или равно
+    lessThan: меньше
+    lessThanOrEqual: меньше или равно
+    between: между
+    isEmpty: пусто
+    isNotEmpty: не пусто
+
+selection:
+  selected: "Выбрано {count}"
+  clear: Очистить
+
+columnManager:
+  manageColumns: Управление столбцами

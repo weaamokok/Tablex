@@ -1,0 +1,34 @@
+grid:
+  noData: কোনো তথ্য নেই
+
+pagination:
+  showing: "{start}–{end} দেখানো হচ্ছে, মোট {total}"
+  noResults: কোনো ফলাফল নেই
+  previous: পূর্ববর্তী
+  next: পরবর্তী
+
+filters:
+  clearAll: সব মুছুন
+  cancel: বাতিল
+  apply: প্রয়োগ করুন
+  operators:
+    equals: সমান
+    notEquals: সমান নয়
+    contains: রয়েছে
+    notContains: নেই
+    startsWith: দিয়ে শুরু
+    endsWith: দিয়ে শেষ
+    greaterThan: এর চেয়ে বড়
+    greaterThanOrEqual: এর চেয়ে বড় বা সমান
+    lessThan: এর চেয়ে ছোট
+    lessThanOrEqual: এর চেয়ে ছোট বা সমান
+    between: এর মধ্যে
+    isEmpty: খালি
+    isNotEmpty: খালি নয়
+
+selection:
+  selected: "{count}টি নির্বাচিত"
+  clear: মুছুন
+
+columnManager:
+  manageColumns: কলাম পরিচালনা করুন

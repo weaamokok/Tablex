@@ -1,0 +1,34 @@
+grid:
+  noData: Aucune donnée
+
+pagination:
+  showing: "Affichage {start}–{end} sur {total}"
+  noResults: Aucun résultat
+  previous: Précédent
+  next: Suivant
+
+filters:
+  clearAll: Tout effacer
+  cancel: Annuler
+  apply: Appliquer
+  operators:
+    equals: est égal à
+    notEquals: "n'est pas égal à"
+    contains: contient
+    notContains: ne contient pas
+    startsWith: commence par
+    endsWith: se termine par
+    greaterThan: supérieur à
+    greaterThanOrEqual: supérieur ou égal à
+    lessThan: inférieur à
+    lessThanOrEqual: inférieur ou égal à
+    between: entre
+    isEmpty: est vide
+    isNotEmpty: "n'est pas vide"
+
+selection:
+  selected: "{count} sélectionné(s)"
+  clear: Effacer
+
+columnManager:
+  manageColumns: Gérer les colonnes

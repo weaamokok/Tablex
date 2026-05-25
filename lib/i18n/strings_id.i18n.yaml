@@ -1,0 +1,34 @@
+grid:
+  noData: Tidak ada data
+
+pagination:
+  showing: "Menampilkan {start}–{end} dari {total}"
+  noResults: Tidak ada hasil
+  previous: Sebelumnya
+  next: Berikutnya
+
+filters:
+  clearAll: Hapus semua
+  cancel: Batal
+  apply: Terapkan
+  operators:
+    equals: sama dengan
+    notEquals: tidak sama dengan
+    contains: mengandung
+    notContains: tidak mengandung
+    startsWith: dimulai dengan
+    endsWith: diakhiri dengan
+    greaterThan: lebih besar dari
+    greaterThanOrEqual: lebih besar atau sama dengan
+    lessThan: lebih kecil dari
+    lessThanOrEqual: lebih kecil atau sama dengan
+    between: antara
+    isEmpty: kosong
+    isNotEmpty: tidak kosong
+
+selection:
+  selected: "{count} dipilih"
+  clear: Hapus
+
+columnManager:
+  manageColumns: Kelola kolom

@@ -1,0 +1,34 @@
+grid:
+  noData: کوئی ڈیٹا نہیں
+
+pagination:
+  showing: "{start}–{end} دکھا رہے ہیں، کل {total} میں سے"
+  noResults: کوئی نتیجہ نہیں
+  previous: پچھلا
+  next: اگلا
+
+filters:
+  clearAll: سب صاف کریں
+  cancel: منسوخ
+  apply: لاگو کریں
+  operators:
+    equals: برابر
+    notEquals: برابر نہیں
+    contains: موجود ہے
+    notContains: موجود نہیں
+    startsWith: سے شروع ہوتا ہے
+    endsWith: پر ختم ہوتا ہے
+    greaterThan: سے زیادہ
+    greaterThanOrEqual: سے زیادہ یا برابر
+    lessThan: سے کم
+    lessThanOrEqual: سے کم یا برابر
+    between: کے درمیان
+    isEmpty: خالی ہے
+    isNotEmpty: خالی نہیں
+
+selection:
+  selected: "{count} منتخب"
+  clear: صاف کریں
+
+columnManager:
+  manageColumns: کالم منظم کریں

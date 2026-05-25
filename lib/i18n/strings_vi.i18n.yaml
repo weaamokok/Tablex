@@ -1,0 +1,34 @@
+grid:
+  noData: Không có dữ liệu
+
+pagination:
+  showing: "Hiển thị {start}–{end} trong {total}"
+  noResults: Không có kết quả
+  previous: Trước
+  next: Tiếp
+
+filters:
+  clearAll: Xóa tất cả
+  cancel: Hủy
+  apply: Áp dụng
+  operators:
+    equals: bằng
+    notEquals: không bằng
+    contains: chứa
+    notContains: không chứa
+    startsWith: bắt đầu bằng
+    endsWith: kết thúc bằng
+    greaterThan: lớn hơn
+    greaterThanOrEqual: lớn hơn hoặc bằng
+    lessThan: nhỏ hơn
+    lessThanOrEqual: nhỏ hơn hoặc bằng
+    between: "giữa"
+    isEmpty: trống
+    isNotEmpty: không trống
+
+selection:
+  selected: "Đã chọn {count}"
+  clear: Xóa
+
+columnManager:
+  manageColumns: Quản lý cột
