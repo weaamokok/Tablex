@@ -174,6 +174,7 @@ class Tablex<T> extends StatefulWidget {
         _fetchWithSorting = false,
         _fetchWithFiltering = false,
         _fetchSize = 50,
+        _windowPages = 1,
         _initialPageSize = 25,
         _paginationKey = null,
         _enablePageJump = false,
@@ -254,6 +255,7 @@ class Tablex<T> extends StatefulWidget {
         _enablePageJump = enablePageJump,
         _footerBuilder = footerBuilder,
         _fetchSize = 50,
+        _windowPages = 1,
         _showSelectionSummary = showSelectionSummary,
         _selectionActions = selectionActions,
         _includeClearSelectionAction = includeClearSelectionAction,
@@ -285,6 +287,7 @@ class Tablex<T> extends StatefulWidget {
     bool fetchWithSorting = true,
     bool fetchWithFiltering = true,
     int fetchSize = 50,
+    int windowPages = 5,
     List<TablexColumnGroup>? columnGroups,
     Widget? noDataWidget,
     TablexLoadingBuilder<T>? loadingBuilder,
@@ -316,6 +319,7 @@ class Tablex<T> extends StatefulWidget {
         _fetchWithSorting = fetchWithSorting,
         _fetchWithFiltering = fetchWithFiltering,
         _fetchSize = fetchSize,
+        _windowPages = windowPages,
         _initialPageSize = 25,
         _paginationKey = null,
         _enablePageJump = false,
@@ -373,6 +377,7 @@ class Tablex<T> extends StatefulWidget {
         _fetchWithSorting = false,
         _fetchWithFiltering = false,
         _fetchSize = 50,
+        _windowPages = 1,
         _initialPageSize = 25,
         _paginationKey = null,
         _enablePageJump = false,
@@ -411,6 +416,7 @@ class Tablex<T> extends StatefulWidget {
   final bool _hideEmptyColumns;
   final int _initialPageSize;
   final int _fetchSize;
+  final int _windowPages;
   final Key? _paginationKey;
   final bool _enablePageJump;
   final TablexFooterBuilder? _footerBuilder;
@@ -437,10 +443,17 @@ class _TablexState<T> extends State<Tablex<T>> {
   // Mirrors body scroll so the header stays in sync without sharing a controller.
   final ScrollController _headerHorizontalScroll = ScrollController();
 
-  // For infinite scroll
-  bool _isFetching = false;
-  int _lastFetchedPage = 0;
+  // Sliding-window infinite scroll state.
+  // _loadedPages holds page numbers currently in memory, oldest-first.
+  // _pageRowCounts tracks actual row count per page (last page may be partial).
+  final List<int> _loadedPages = [];
+  final Map<int, int> _pageRowCounts = {};
+  bool _isFetchingForward = false;
+  bool _isFetchingBackward = false;
   int _totalRows = 0;
+  // Incremented on every sort/reset so in-flight futures from the previous
+  // generation abort when they resolve instead of mutating stale state.
+  int _fetchGeneration = 0;
 
   @override
   void initState() {
@@ -463,7 +476,7 @@ class _TablexState<T> extends State<Tablex<T>> {
       if (widget._variant == _TablexVariant.infinite) {
         _verticalScroll.addListener(_onInfiniteScroll);
         WidgetsBinding.instance
-            .addPostFrameCallback((_) => _fetchInfinitePage());
+            .addPostFrameCallback((_) => _fetchForward());
       }
     }
 
@@ -568,12 +581,15 @@ class _TablexState<T> extends State<Tablex<T>> {
         _applyStaticSort(sort?.field, sort?.direction);
       case _TablexVariant.infinite:
         if (!widget._fetchWithSorting) break;
-        _isFetching = false;
-        _controller.clearRows();
-        _lastFetchedPage = 0;
+        _fetchGeneration++; // invalidate any in-flight futures
+        _isFetchingForward = false;
+        _isFetchingBackward = false;
+        _loadedPages.clear();
+        _pageRowCounts.clear();
         _totalRows = 0;
+        _controller.clearRows();
         _preloadSkeletonIfNeeded();
-        _fetchInfinitePage();
+        _fetchForward();
       case _TablexVariant.lazyPaged:
         break; // pagination footer reacts via _onControllerChanged
     }
@@ -602,37 +618,139 @@ class _TablexState<T> extends State<Tablex<T>> {
     );
   }
 
-  Future<void> _fetchInfinitePage() async {
-    if (_isFetching) return;
-    final nextPage = _lastFetchedPage + 1;
+  // ---------------------------------------------------------------------------
+  // Sliding-window infinite scroll
+  //
+  // Memory model: only [windowPages] pages live in the controller at once.
+  // When a new page arrives at the bottom, the oldest top page is evicted and
+  // the scroll offset is compensated so the viewport does not jump.
+  // When the user scrolls back above the window, the previous page is fetched
+  // and the bottom page is evicted instead.
+  // ---------------------------------------------------------------------------
 
-    _isFetching = true;
+  /// Fetches the next page and appends it. Evicts the top page if the window
+  /// is full, compensating the scroll offset so the viewport stays stable.
+  Future<void> _fetchForward() async {
+    if (_isFetchingForward) return;
+    if (_loadedPages.isNotEmpty && _controller.rowCount >= _totalRows) return;
+
+    final nextPage = _loadedPages.isEmpty ? 1 : _loadedPages.last + 1;
+    final gen = _fetchGeneration;
+    _isFetchingForward = true;
     _controller.setLoading(true);
     try {
-      final query = _controller.state.query.copyWith(
+      var q = _controller.state.query.copyWith(
         page: nextPage,
         pageSize: widget._fetchSize,
       );
-      final result = await widget._fetchTask!(query);
-      if (!mounted) return;
+      if (!widget._fetchWithSorting) q = q.copyWith(clearSort: true);
+      if (!widget._fetchWithFiltering) q = q.copyWith(params: const {});
+      final result = await widget._fetchTask!(q);
+      if (!mounted || _fetchGeneration != gen) return;
+
       _totalRows = result.totalRows;
-      _lastFetchedPage = nextPage;
-      _controller.appendRows(result.rows, rowBuilder: widget._rowBuilder);
+      _pageRowCounts[nextPage] = result.rows.length;
+
+      // Evict the oldest (top) page if the window is full.
+      if (_loadedPages.length >= widget._windowPages) {
+        final evictedPage = _loadedPages.removeAt(0);
+        final evictedCount = _pageRowCounts.remove(evictedPage) ?? 0;
+        final compensation = evictedCount * widget._density.rowHeight;
+        _controller.removeFirstRows(evictedCount);
+        // After the ListView rebuilds with fewer items, shift the scroll up
+        // by exactly the height of the removed rows so the viewport is stable.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_verticalScroll.hasClients) return;
+          final target = _verticalScroll.offset - compensation;
+          _verticalScroll.jumpTo(target.clamp(0.0, _verticalScroll.position.maxScrollExtent));
+        });
+      }
+
+      _loadedPages.add(nextPage);
+      // First page: replace any skeleton rows. Subsequent pages: append.
+      if (_loadedPages.length == 1) {
+        _controller.replaceRows(result.rows, rowBuilder: widget._rowBuilder);
+      } else {
+        _controller.appendRows(result.rows, rowBuilder: widget._rowBuilder);
+      }
     } catch (e) {
       if (mounted) _controller.setError(e);
     } finally {
-      _isFetching = false;
+      _isFetchingForward = false;
       if (mounted) _controller.setLoading(false);
+    }
+
+    // Proactive prefetch: fill the window without waiting for a scroll event.
+    // Runs after the finally block so _isFetchingForward is already false.
+    // Stops once the window is full — from that point the scroll trigger takes over.
+    if (mounted &&
+        _controller.rowCount < _totalRows &&
+        _loadedPages.length < widget._windowPages) {
+      _fetchForward();
+    }
+  }
+
+  /// Fetches the previous page and prepends it. Evicts the bottom page if the
+  /// window is full, then compensates the scroll offset downward so the
+  /// viewport stays stable.
+  Future<void> _fetchBackward() async {
+    if (_isFetchingBackward) return;
+    if (_loadedPages.isEmpty || _loadedPages.first <= 1) return;
+
+    final prevPage = _loadedPages.first - 1;
+    final gen = _fetchGeneration;
+    _isFetchingBackward = true;
+    try {
+      var q = _controller.state.query.copyWith(
+        page: prevPage,
+        pageSize: widget._fetchSize,
+      );
+      if (!widget._fetchWithSorting) q = q.copyWith(clearSort: true);
+      if (!widget._fetchWithFiltering) q = q.copyWith(params: const {});
+      final result = await widget._fetchTask!(q);
+      if (!mounted || _fetchGeneration != gen) return;
+
+      _pageRowCounts[prevPage] = result.rows.length;
+
+      // Evict the newest (bottom) page if the window is full.
+      if (_loadedPages.length >= widget._windowPages) {
+        final evictedPage = _loadedPages.removeLast();
+        final evictedCount = _pageRowCounts.remove(evictedPage) ?? 0;
+        _controller.removeLastRows(evictedCount);
+        // Removing from the bottom does not shift visible content — no scroll
+        // compensation needed.
+      }
+
+      _loadedPages.insert(0, prevPage);
+      _controller.prependRows(result.rows, rowBuilder: widget._rowBuilder);
+
+      // After prepending, the ListView inserts rows above the current offset.
+      // Shift the scroll down by the added height to keep the viewport stable.
+      final addedHeight = result.rows.length * widget._density.rowHeight;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_verticalScroll.hasClients) return;
+        _verticalScroll.jumpTo(_verticalScroll.offset + addedHeight);
+      });
+    } catch (e) {
+      if (mounted) _controller.setError(e);
+    } finally {
+      _isFetchingBackward = false;
     }
   }
 
   void _onInfiniteScroll() {
     if (!_verticalScroll.hasClients) return;
-    final position = _verticalScroll.position;
-    if (position.pixels >= position.maxScrollExtent - 200) {
-      if (_controller.rowCount < _totalRows) {
-        _fetchInfinitePage();
-      }
+    final pos = _verticalScroll.position;
+    // Lookahead = one full page worth of row height so fetches start early
+    // enough to hide network latency before the user reaches the bottom.
+    final lookahead = widget._fetchSize * widget._density.rowHeight;
+
+    if (pos.pixels >= pos.maxScrollExtent - lookahead) {
+      _fetchForward();
+    }
+
+    if (pos.pixels <= lookahead && _loadedPages.isNotEmpty && _loadedPages.first > 1) {
+      _fetchBackward();
     }
   }
 
@@ -656,11 +774,54 @@ class _TablexState<T> extends State<Tablex<T>> {
                 .every((r) => (r.cells[col.fieldKey]?.toString() ?? '').isEmpty))
             .map((col) => col.fieldKey),
     };
-    if (_isFetching || state.isLoading) {}
-    final table = Column(
+    // Error replaces the table entirely.
+    if (state.error != null && widget._errorBuilder != null) {
+      return widget._errorBuilder!(context, state.error!);
+    }
+
+    // ── Body ─────────────────────────────────────────────────────────────────
+    // Built separately so loadingBuilder only wraps the scrollable rows, never
+    // the header or footer (which don't need to be skeletonized).
+    final tableBody = TablexBody<T>(
+      controller: _controller,
+      columns: ordered,
+      density: widget._density,
+      theme: resolvedTheme,
+      selectionMode: widget._selectionMode,
+      verticalScrollController: _verticalScroll,
+      horizontalScrollController: _horizontalScroll,
+      onRowTap: widget._onRowTap,
+      onRowDoubleTap: widget._onRowDoubleTap,
+      onSelectionChanged: widget._onSelectionChanged,
+      // Suppress noDataWidget while the first fetch is in flight so the
+      // user never sees "No data" before any rows have arrived.
+      noDataWidget: (!state.isInitialized && state.isLoading)
+          ? const SizedBox.shrink()
+          : widget._noDataWidget,
+    );
+
+    Widget resolvedBody;
+    final lb = widget._loadingBuilder;
+    if (!state.isInitialized && state.isLoading) {
+      if (lb != null) {
+        // Skeleton rows already loaded in initState — let the builder shimmer
+        // only over the row area, not the header or footer.
+        resolvedBody = lb.builder(context, tableBody);
+      } else {
+        // No loadingBuilder — centred spinner over the empty body area.
+        resolvedBody = Stack(
+          children: [tableBody, const Center(child: CircularProgressIndicator())],
+        );
+      }
+    } else {
+      resolvedBody = tableBody;
+    }
+
+    // ── Full table layout ────────────────────────────────────────────────────
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Column group header
+        // Column group header (never skeletonized)
         if (widget._columnGroups != null)
           TablexColumnGroupHeader<T>(
             groups: widget._columnGroups!,
@@ -670,7 +831,7 @@ class _TablexState<T> extends State<Tablex<T>> {
             density: widget._density,
             theme: resolvedTheme,
           ),
-        // Header row or selection summary bar
+        // Header row or selection summary bar (never skeletonized)
         if (widget._showHeader)
           _controller.selectedRows.isNotEmpty && widget._showSelectionSummary
               ? widget._selectionSummaryBuilder != null
@@ -715,25 +876,13 @@ class _TablexState<T> extends State<Tablex<T>> {
                     onDeselectAll: _controller.clearSelection,
                   ),
                 ),
-        Expanded(
-          child: TablexBody<T>(
-            controller: _controller,
-            columns: ordered,
-            density: widget._density,
-            theme: resolvedTheme,
-            selectionMode: widget._selectionMode,
-            verticalScrollController: _verticalScroll,
-            horizontalScrollController: _horizontalScroll,
-            onRowTap: widget._onRowTap,
-            onRowDoubleTap: widget._onRowDoubleTap,
-            onSelectionChanged: widget._onSelectionChanged,
-            // Suppress noDataWidget while in skeleton-loading state
-            noDataWidget:
-                (!state.isInitialized && widget._loadingBuilder != null)
-                    ? const SizedBox.shrink()
-                    : widget._noDataWidget,
-          ),
-        ),
+        // Scrollable body (potentially wrapped by loadingBuilder)
+        Expanded(child: resolvedBody),
+        // Bottom loading indicator for ongoing infinite-scroll fetches.
+        if (widget._variant == _TablexVariant.infinite &&
+            state.isInitialized &&
+            state.isLoading)
+          const _InfiniteLoadingBar(),
         // Footer row (aggregate cells)
         if (ordered.any((c) => c.footerRenderer != null))
           TablexFooterRow<T>(
@@ -760,21 +909,25 @@ class _TablexState<T> extends State<Tablex<T>> {
           ),
       ],
     );
+  }
+}
 
-    // Error replaces the table entirely
-    if (state.error != null && widget._errorBuilder != null) {
-      return widget._errorBuilder!(context, state.error!);
-    }
+// ============================================================================
+// Infinite scroll bottom loading bar
+// ============================================================================
 
-    // Loading builder wraps the table — only on the very first fetch.
-    // Skeleton rows are already in the controller (loaded in initState),
-    // so the builder immediately has content to shimmer over.
-    final lb = widget._loadingBuilder;
-    if (!state.isInitialized && state.isLoading && lb != null) {
-      return lb.builder(context, table);
-    }
+class _InfiniteLoadingBar extends StatelessWidget {
+  const _InfiniteLoadingBar();
 
-    return table;
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 3,
+      child: LinearProgressIndicator(
+        backgroundColor: Colors.transparent,
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+      ),
+    );
   }
 }
 

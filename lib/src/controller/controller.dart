@@ -111,8 +111,10 @@ class TablexController<T> extends ChangeNotifier {
   // ---------------------------------------------------------------------------
 
   /// All rows currently held by the controller, in display order.
-  List<TablexRow<T>> get rows =>
-      _rowOrder.map((k) => _rowMap[k]!).toList(growable: false);
+  List<TablexRow<T>> get rows => _rowOrder.map((k) {
+        assert(_rowMap.containsKey(k), 'Row key "$k" is in _rowOrder but missing from _rowMap — this is a controller bug');
+        return _rowMap[k]!;
+      }).toList(growable: false);
 
   /// Number of rows currently held by the controller.
   int get rowCount => _rowOrder.length;
@@ -162,6 +164,63 @@ class TablexController<T> extends ChangeNotifier {
       _rowOrder.add(key);
     }
     _state = _state.copyWith(isInitialized: true);
+    _notify();
+  }
+
+  /// Inserts [items] at the beginning of the row set without clearing existing rows.
+  ///
+  /// Used by the infinite-scroll sliding window when re-fetching evicted pages
+  /// above the viewport.
+  void prependRows(
+    List<T> items, {
+    required TablexRow<T> Function(T item) rowBuilder,
+  }) {
+    _checkDisposed();
+    final newKeys = <String>[];
+    for (final item in items) {
+      final row = rowBuilder(item);
+      final key = row.key ?? _generateKey();
+      _rowMap[key] = TablexRow<T>(
+          data: row.data, cells: row.cells, key: key, checked: row.checked);
+      newKeys.add(key);
+    }
+    _rowOrder.insertAll(0, newKeys);
+    _state = _state.copyWith(isInitialized: true);
+    _notify();
+  }
+
+  /// Removes the first [count] rows from the controller.
+  ///
+  /// Used by the infinite-scroll sliding window to evict pages that have
+  /// scrolled above the viewport.
+  void removeFirstRows(int count) {
+    _checkDisposed();
+    final n = count.clamp(0, _rowOrder.length);
+    if (n == 0) return;
+    final evicted = _rowOrder.sublist(0, n);
+    _rowOrder.removeRange(0, n);
+    for (final key in evicted) {
+      assert(_rowMap.containsKey(key), 'Row key "$key" missing from _rowMap during removeFirstRows — controller bug');
+      _rowMap.remove(key);
+    }
+    _notify();
+  }
+
+  /// Removes the last [count] rows from the controller.
+  ///
+  /// Used by the infinite-scroll sliding window to evict pages below the
+  /// viewport when the user scrolls back up.
+  void removeLastRows(int count) {
+    _checkDisposed();
+    final n = count.clamp(0, _rowOrder.length);
+    if (n == 0) return;
+    final start = _rowOrder.length - n;
+    final evicted = _rowOrder.sublist(start);
+    _rowOrder.removeRange(start, _rowOrder.length);
+    for (final key in evicted) {
+      assert(_rowMap.containsKey(key), 'Row key "$key" missing from _rowMap during removeLastRows — controller bug');
+      _rowMap.remove(key);
+    }
     _notify();
   }
 

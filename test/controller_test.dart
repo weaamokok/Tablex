@@ -624,4 +624,117 @@ void main() {
       expect(count, 0);
     });
   });
+
+  // =========================================================================
+  group('sliding-window row mutations', () {
+    test('prependRows inserts at the beginning', () {
+      final c = _ctrl();
+      c.replaceRows([_alice, _bob], rowBuilder: _row);
+      c.prependRows([_carol], rowBuilder: _row);
+      expect(c.rowCount, 3);
+      expect(c.getAllRowData(), [_carol, _alice, _bob]);
+    });
+
+    test('prependRows on empty controller starts the list', () {
+      final c = _ctrl();
+      c.prependRows([_alice], rowBuilder: _row);
+      expect(c.rowCount, 1);
+      expect(c.getAllRowData(), [_alice]);
+    });
+
+    test('prependRows notifies listeners once', () {
+      int count = 0;
+      final c = _ctrl()..addListener(() => count++);
+      c.replaceRows([_alice], rowBuilder: _row);
+      count = 0;
+      c.prependRows([_bob], rowBuilder: _row);
+      expect(count, 1);
+    });
+
+    test('removeFirstRows removes N rows from the top', () {
+      final c = _ctrl();
+      c.replaceRows([_alice, _bob, _carol], rowBuilder: _row);
+      c.removeFirstRows(2);
+      expect(c.rowCount, 1);
+      expect(c.getAllRowData(), [_carol]);
+    });
+
+    test('removeFirstRows(0) is a no-op and does not notify', () {
+      int count = 0;
+      final c = _ctrl()..addListener(() => count++);
+      c.replaceRows([_alice, _bob], rowBuilder: _row);
+      count = 0;
+      c.removeFirstRows(0);
+      expect(c.rowCount, 2);
+      expect(count, 0);
+    });
+
+    test('removeFirstRows clamps to rowCount when count exceeds length', () {
+      final c = _ctrl();
+      c.replaceRows([_alice], rowBuilder: _row);
+      c.removeFirstRows(99);
+      expect(c.rowCount, 0);
+    });
+
+    test('removeFirstRows notifies listeners', () {
+      int count = 0;
+      final c = _ctrl()..addListener(() => count++);
+      c.replaceRows([_alice, _bob], rowBuilder: _row);
+      count = 0;
+      c.removeFirstRows(1);
+      expect(count, 1);
+    });
+
+    test('removeLastRows removes N rows from the bottom', () {
+      final c = _ctrl();
+      c.replaceRows([_alice, _bob, _carol], rowBuilder: _row);
+      c.removeLastRows(2);
+      expect(c.rowCount, 1);
+      expect(c.getAllRowData(), [_alice]);
+    });
+
+    test('removeLastRows(0) is a no-op and does not notify', () {
+      int count = 0;
+      final c = _ctrl()..addListener(() => count++);
+      c.replaceRows([_alice, _bob], rowBuilder: _row);
+      count = 0;
+      c.removeLastRows(0);
+      expect(c.rowCount, 2);
+      expect(count, 0);
+    });
+
+    test('removeLastRows clamps to rowCount when count exceeds length', () {
+      final c = _ctrl();
+      c.replaceRows([_alice], rowBuilder: _row);
+      c.removeLastRows(99);
+      expect(c.rowCount, 0);
+    });
+
+    test('removeLastRows notifies listeners', () {
+      int count = 0;
+      final c = _ctrl()..addListener(() => count++);
+      c.replaceRows([_alice, _bob], rowBuilder: _row);
+      count = 0;
+      c.removeLastRows(1);
+      expect(count, 1);
+    });
+
+    test('prepend + removeLastRows simulates backward-scroll window eviction', () {
+      final c = _ctrl();
+      c.replaceRows([_bob, _carol], rowBuilder: _row);
+      c.prependRows([_alice], rowBuilder: _row);
+      c.removeLastRows(1);
+      expect(c.rowCount, 2);
+      expect(c.getAllRowData(), [_alice, _bob]);
+    });
+
+    test('removeFirstRows + appendRows simulates forward-scroll window eviction', () {
+      final c = _ctrl();
+      c.replaceRows([_alice, _bob], rowBuilder: _row);
+      c.removeFirstRows(1);
+      c.appendRows([_carol], rowBuilder: _row);
+      expect(c.rowCount, 2);
+      expect(c.getAllRowData(), [_bob, _carol]);
+    });
+  });
 }

@@ -209,8 +209,10 @@ Employee _makeEmployee(int id, Random rng) {
   );
 }
 
+// Stable dataset shared by all fetch functions. 500 rows for infinite scroll,
+// paged tabs use a subset or the full list depending on their page size.
 List<Employee> _allEmployees = List.generate(
-  200,
+  500,
   (i) => _makeEmployee(i + 1, Random(i * 31)),
 );
 
@@ -559,28 +561,33 @@ class _LazyPagedGridScreen extends StatelessWidget {
 // Tab 3 — Infinite scroll
 // ============================================================================
 
-int _infiniteFetchCount = 0;
-
 Future<TablexFetchResult<Employee>> _fakeInfiniteFetch(
   TablexQuery query,
 ) async {
-  await Future<void>.delayed(const Duration(milliseconds: 600));
+  await Future<void>.delayed(const Duration(milliseconds: 400));
 
-  final rng = Random(_infiniteFetchCount++);
-  // Generate fresh rows each page to simulate growing dataset
-  final pageData = List.generate(
-    query.pageSize,
-    (i) => _makeEmployee(
-      (query.page - 1) * query.pageSize + i + 1,
-      rng,
-    ),
-  );
+  var data = List<Employee>.from(_allEmployees);
 
-  // Simulate a dataset of 500 total items
-  const totalRows = 500;
+  if (query.sort != null) {
+    final field = query.sort!.field;
+    final asc = query.sort!.direction == TablexSortDirection.ascending;
+    data.sort((a, b) {
+      final cmp = switch (field) {
+        'name' => a.name.compareTo(b.name),
+        'department' => a.department.compareTo(b.department),
+        'salary' => a.salary.compareTo(b.salary),
+        _ => 0,
+      };
+      return asc ? cmp : -cmp;
+    });
+  }
+
+  final total = data.length;
+  final start = (query.page - 1) * query.pageSize;
+  final end = (start + query.pageSize).clamp(0, total);
   return TablexFetchResult(
-    rows: pageData,
-    totalRows: totalRows,
+    rows: data.sublist(start, end),
+    totalRows: total,
   );
 }
 
@@ -654,9 +661,16 @@ class _InfiniteScrollScreen extends StatelessWidget {
                 ),
               ],
               fetchTask: _fakeInfiniteFetch,
+              fetchWithSorting: true,
               rowBuilder: _employeeRowBuilder,
               density: TablexDensity.compact,
               fetchSize: 50,
+              loadingBuilder: TablexLoadingBuilder(
+                skeletonData:
+                    List.generate(20, (i) => _makeEmployee(i + 1, Random(i))),
+                builder: (context, table) =>
+                    Skeletonizer(enabled: true, child: table),
+              ),
             ),
           ),
         ],
