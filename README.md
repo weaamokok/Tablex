@@ -6,12 +6,16 @@ A production-grade Flutter data grid with no dependency on any third-party grid 
 
 ## Features
 
-- **Four grid modes** — static, lazy-paged, infinite-scroll, and select-picker
-- **Built-in cell renderers** — identifier, two-line, avatar+two-line, currency, date, status chip, action buttons
-- **Column management** — resizable columns, sortable headers, show/hide column manager
+- **Four grid modes** — static in-memory, lazy-paged (server-side), infinite-scroll, and select-picker
+- **Sliding-window infinite scroll** — only keeps a configurable number of pages in memory; evicts old pages as the user scrolls, with seamless scroll-position compensation
+- **Skeleton loading** — pre-populate the grid with placeholder rows that shimmer while the first page loads
+- **Column management** — resizable, sortable, reorderable headers; show/hide via column manager
 - **Row selection** — single or multi-select with a customisable summary bar and bulk-action buttons
+- **Built-in cell renderers** — identifier, two-line, avatar+two-line, currency, date, status chip, action buttons
+- **CSV & Excel export/import** — built-in toolbar with formula-injection protection
 - **Density presets** — `compact`, `standard`, `comfortable`
-- **Theming** — full theme override via `TablexThemeData`
+- **Column groups** — spanning header labels across multiple columns
+- **Theming** — full override via `TablexThemeData` or inherit from Material 3
 - **i18n** — locale strings via `slang` (override to ship your own language)
 - Zero third-party grid engine dependency
 
@@ -19,23 +23,21 @@ A production-grade Flutter data grid with no dependency on any third-party grid 
 
 ## Getting started
 
-Add to your `pubspec.yaml`:
-
 ```yaml
 dependencies:
-  tablex: ^0.1.0
+  tablex: ^0.2.0
 ```
 
 ---
 
 ## Usage
 
-### Static grid
+### TablexConsumer — recommended for server-paginated data
 
-All rows are provided upfront. Supports sorting and column resize.
+`TablexConsumer` is the highest-level widget. It wraps `Tablex.lazyPaged` and adds a rounded bordered container, an optional title/filter header slot, automatic filter-chip rendering, and a selection summary bar. A `TablexController` is created and disposed for you unless you supply your own.
 
 ```dart
-Tablex<Employee>.static(
+TablexConsumer<Employee>(
   columns: [
     TablexColumn<Employee, String>(
       fieldKey: 'name',
@@ -52,6 +54,77 @@ Tablex<Employee>.static(
       cellRenderer: TablexRenderers.currency(symbol: '\$'),
     ),
   ],
+  fetchTask: (query) async {
+    final resp = await api.getEmployees(
+      page: query.page,
+      pageSize: query.pageSize,
+      sort: query.sort?.field,
+      sortAsc: query.sort?.direction == TablexSortDirection.ascending,
+    );
+    return TablexFetchResult(rows: resp.items, totalRows: resp.total);
+  },
+  initialPageSize: 13,
+  tableHeader: const Text('Employees', style: TextStyle(fontWeight: FontWeight.bold)),
+)
+```
+
+#### Optional header & filter slots
+
+```dart
+TablexConsumer<Employee>(
+  // ...
+  tableHeader: Row(
+    children: [
+      const Text('Employees'),
+      const Spacer(),
+      TablexToolbar<Employee>(controller: _controller, columns: _columns),
+    ],
+  ),
+  tableFilter: MySearchField(onChanged: (v) => _controller.setParam('q', v)),
+)
+```
+
+#### Skeleton loading
+
+Pre-populate with placeholder rows until the first real page arrives:
+
+```dart
+TablexConsumer<Employee>(
+  // ...
+  loadingBuilder: TablexLoadingBuilder(
+    skeletonData: List.generate(13, (_) => Employee.placeholder()),
+    builder: (context, table) => Skeletonizer(enabled: true, child: table),
+  ),
+)
+```
+
+#### Custom pagination footer
+
+```dart
+TablexConsumer<Employee>(
+  // ...
+  enablePageJump: true, // editable page-number field
+  footerBuilder: (context, info) => Row(
+    children: [
+      Text('Page ${info.page} of ${info.totalPages}'),
+      IconButton(
+        icon: const Icon(Icons.chevron_right),
+        onPressed: info.nextPage,
+      ),
+    ],
+  ),
+)
+```
+
+---
+
+### Tablex.static — in-memory grid
+
+All rows are provided upfront. Sorting is handled client-side.
+
+```dart
+Tablex<Employee>.static(
+  columns: columns,
   rows: employees,
   rowBuilder: (e) => TablexRow(
     data: e,
@@ -61,9 +134,11 @@ Tablex<Employee>.static(
 )
 ```
 
-### Lazy-paged grid
+---
 
-Rows are fetched from a server one page at a time.
+### Tablex.lazyPaged — server-side pagination
+
+Fetches one page at a time. The built-in pagination footer handles page navigation, page-size selection, and a page cache (up to 10 pages cached to avoid re-fetching on back-navigation).
 
 ```dart
 Tablex<Employee>.lazyPaged(
@@ -82,22 +157,39 @@ Tablex<Employee>.lazyPaged(
 )
 ```
 
-### Infinite scroll
+---
 
-New rows are fetched automatically as the user scrolls to the bottom.
+### Tablex.infinite — infinite scroll with sliding window
+
+New pages are fetched automatically as the user scrolls toward the bottom. A configurable sliding window (`windowPages`) keeps only that many pages in memory at once — old pages are evicted as new ones arrive, and the scroll position is compensated so the viewport never jumps.
 
 ```dart
 Tablex<Employee>.infinite(
   columns: columns,
-  fetchTask: myFetchTask,
+  fetchTask: (query) async {
+    final result = await api.fetchPage(
+      page: query.page,
+      pageSize: query.pageSize,
+    );
+    return TablexFetchResult(rows: result.items, totalRows: result.total);
+  },
   rowBuilder: rowBuilder,
   fetchSize: 50,
+  windowPages: 5,        // keep at most 5 pages in memory
+  loadingBuilder: TablexLoadingBuilder(
+    skeletonData: List.generate(15, (_) => Employee.placeholder()),
+    builder: (context, table) => Skeletonizer(enabled: true, child: table),
+  ),
 )
 ```
 
-### Select picker
+Sorting resets the scroll position, clears all loaded pages, and re-fetches from page 1 — stale in-flight requests are discarded via a generation counter so no data races occur.
 
-Turns the grid into a multi-select or single-select picker.
+---
+
+### Tablex.select — picker / combobox
+
+Turns the grid into a single or multi-select picker. Density defaults to `compact`.
 
 ```dart
 Tablex<Country>.select(
@@ -105,7 +197,95 @@ Tablex<Country>.select(
   rows: countries,
   rowBuilder: countryRowBuilder,
   multiSelect: true,
-  onSelectionChanged: (selected) => setState(() => _selected = selected),
+  onSelectionChanged: (selected) => setState(() => _picked = selected),
+)
+```
+
+---
+
+## TablexController
+
+The controller is optional — each widget creates its own unless you pass one. Provide your own when you need to drive the grid from outside.
+
+```dart
+final _controller = TablexController<Employee>();
+
+// Refresh (re-fetches current page, invalidates the page cache)
+_controller.refresh();
+
+// Pass arbitrary params to fetchTask
+_controller.setParam('status', 'active');
+
+// Programmatic navigation
+_controller.goToPage(3);
+_controller.nextPage();
+_controller.previousPage();
+
+// Sort
+_controller.setSort(const TablexColumnSort(
+  field: 'name',
+  direction: TablexSortDirection.ascending,
+));
+
+// Row manipulation (useful for optimistic updates)
+_controller.updateRow(0, updatedEmployee, rowBuilder: rowBuilder);
+_controller.removeRow(0);
+
+// Export
+final csv = _controller.exportToCsv(columns);
+
+// Selection
+_controller.selectAll(_controller.getAllRowData());
+_controller.clearSelection();
+```
+
+Do not forget to dispose the controller when you own it:
+
+```dart
+@override
+void dispose() {
+  _controller.dispose();
+  super.dispose();
+}
+```
+
+---
+
+## Column definitions
+
+### TablexColumn
+
+```dart
+TablexColumn<Employee, String>(
+  fieldKey: 'name',   // must match the key in TablexRow.cells
+  title: 'Name',
+  width: 180,
+  minWidth: 80,
+  enableSorting: true,
+  enableFiltering: true,
+  textAlign: TextAlign.start,
+  cellRenderer: TablexRenderers.twoLine(secondLine: (e) => e.email),
+)
+```
+
+### Column groups
+
+Span a header label across multiple columns:
+
+```dart
+Tablex<Employee>.lazyPaged(
+  columns: columns,
+  columnGroups: [
+    TablexColumnGroup(
+      title: 'Personal',
+      fieldKeys: ['firstName', 'lastName', 'email'],
+    ),
+    TablexColumnGroup(
+      title: 'Compensation',
+      fieldKeys: ['salary', 'bonus'],
+    ),
+  ],
+  // ...
 )
 ```
 
@@ -113,31 +293,108 @@ Tablex<Country>.select(
 
 ## Built-in renderers
 
-| Renderer | Usage |
+| Renderer | Description |
 |---|---|
-| `TablexRenderers.identifier()` | Monospaced ID cell |
-| `TablexRenderers.twoLine(secondLine: ...)` | Primary + secondary text |
-| `TablexRenderers.avatarTwoLine(...)` | Avatar + two lines |
-| `TablexRenderers.currency(symbol: '\$')` | Formatted number with currency symbol |
-| `TablexRenderers.date()` | Formatted `DateTime` |
-| `TablexRenderers.statusChip(colors: ..., labels: ...)` | Coloured chip |
-| `TablexRenderers.actions(actions: ...)` | Icon button row |
+| `TablexRenderers.identifier()` | Monospaced ID / UUID chip |
+| `TablexRenderers.twoLine(secondLine: ...)` | Primary text + dimmed secondary line |
+| `TablexRenderers.avatarTwoLine(avatar: ..., secondLine: ...)` | Circular avatar + two lines |
+| `TablexRenderers.currency(symbol: '\$', decimals: 2)` | Right-aligned number with currency symbol |
+| `TablexRenderers.date(format: ...)` | Formatted `DateTime` |
+| `TablexRenderers.statusChip(colors: ..., labels: ...)` | Rounded coloured chip |
+| `TablexRenderers.actions(actions: ...)` | Row of icon buttons |
+
+---
+
+## Toolbar (export & import)
+
+`TablexToolbar` gives you column-visibility management, CSV export, Excel export, CSV import, and Excel import as a single drop-in widget.
+
+```dart
+TablexConsumer<Employee>(
+  tableHeader: TablexToolbar<Employee>(
+    controller: _controller,
+    columns: _columns,
+    // Enable import by providing a factory that parses one CSV/Excel row
+    importRowFactory: (map) => TablexRow(
+      data: Employee.fromMap(map),
+      key: map['id'],
+      cells: {'name': map['name']!, 'salary': double.parse(map['salary']!)},
+    ),
+  ),
+  // ...
+)
+```
+
+Override individual actions while keeping the rest:
+
+```dart
+TablexToolbar<Employee>(
+  controller: _controller,
+  columns: _columns,
+  onExportCsv: (csv) async => await api.uploadCsv(csv),
+  onExportExcel: (bytes) async => await FileSaver.saveFile(bytes),
+)
+```
+
+---
+
+## Row selection & bulk actions
+
+```dart
+Tablex<Employee>.static(
+  // ...
+  selectionMode: TablexSelectionMode.multiple,
+  showSelectionSummary: true,
+  selectionActions: [
+    TablexSelectionAction<Employee>(
+      label: 'Delete selected',
+      icon: Icons.delete_outline,
+      onPressed: (selected) => _bulkDelete(selected),
+    ),
+  ],
+)
+```
+
+Replace the entire summary bar with a custom widget:
+
+```dart
+selectionSummaryBuilder: (context, selected, clearSelection) => ColoredBox(
+  color: Theme.of(context).colorScheme.primaryContainer,
+  child: Row(children: [
+    Text('${selected.length} selected'),
+    const Spacer(),
+    TextButton(onPressed: clearSelection, child: const Text('Clear')),
+  ]),
+),
+```
 
 ---
 
 ## Theming
 
+All colours fall back to the ambient Material 3 `ColorScheme` when not set. Override only what you need:
+
 ```dart
 Tablex<Employee>.static(
-  theme: TablexThemeData(
+  theme: const TablexThemeData(
     showVerticalCellBorders: false,
-    borderRadius: BorderRadius.circular(8),
+    borderRadius: BorderRadius.all(Radius.circular(12)),
     checkboxTheme: TablexCheckboxTheme(
-      activeColor: Colors.blue,
+      activeColor: Colors.indigo,
       checkColor: Colors.white,
+      size: 18,
     ),
   ),
   // ...
+)
+```
+
+Alternatively, wrap your subtree with `TablexTheme` to apply a theme to all grids in scope:
+
+```dart
+TablexTheme(
+  data: const TablexThemeData(showVerticalCellBorders: true),
+  child: MyScreen(),
 )
 ```
 
