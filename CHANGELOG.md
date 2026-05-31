@@ -1,3 +1,14 @@
+## 0.2.1
+
+### Bug fixes
+
+* **WASM compatibility** — file import (`FilePicker.pickFiles`) is now behind a conditional export so `dart:io` is never imported on web or WASM. `dart.library.js_interop` routes to an HTML `<input type="file">` + `FileReader` implementation instead.
+* **Formatting** — all library files now pass `dart format`.
+* **Dependency lower-bound fix** — tightened `excel` constraint to `^4.0.6` (the version that introduced `TextCellValue.value` as `TextSpan`); the previous `^4.0.0` caused a type error under `dart pub downgrade`.
+* **Updated `file_picker` to `^11.0.0`** — aligns with the current stable release and migrates call sites from the removed `FilePicker.platform.*` instance methods to the new `FilePicker.*` static API.
+
+---
+
 ## 0.2.0
 
 ### New features

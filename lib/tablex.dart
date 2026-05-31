@@ -13,7 +13,8 @@ export 'src/controller/state.dart';
 export 'src/controller/controller.dart';
 
 // Theme
-export 'src/theme/grid_theme_data.dart' show TablexThemeData, TablexCheckboxTheme;
+export 'src/theme/grid_theme_data.dart'
+    show TablexThemeData, TablexCheckboxTheme;
 export 'src/theme/grid_theme.dart';
 
 // Renderer context and renderers
@@ -22,7 +23,12 @@ export 'src/renderer/cell_renderers.dart';
 
 // Public widgets
 export 'src/widget/tablex_widget.dart'
-    show Tablex, TablexSelectionAction, TablexLoadingBuilder, TablexErrorBuilder, TablexSelectionSummaryBuilder;
+    show
+        Tablex,
+        TablexSelectionAction,
+        TablexLoadingBuilder,
+        TablexErrorBuilder,
+        TablexSelectionSummaryBuilder;
 export 'src/widget/consumer.dart';
 export 'src/widget/column_manager/column_manager_button.dart';
 export 'src/widget/toolbar/tablex_toolbar.dart';

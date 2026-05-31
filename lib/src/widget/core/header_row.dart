@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../../model/column.dart';
 import '../../model/enums.dart';
 import '../../model/query.dart';
-import '../../theme/grid_theme_data.dart' show TablexThemeData, TablexCheckboxTheme;
+import '../../theme/grid_theme_data.dart'
+    show TablexThemeData, TablexCheckboxTheme;
 
 const double _kCheckboxWidth = 48.0;
 

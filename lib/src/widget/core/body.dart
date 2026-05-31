@@ -4,7 +4,8 @@ import '../../controller/state.dart';
 import '../../model/column.dart';
 import '../../model/enums.dart';
 import '../../model/row.dart';
-import '../../theme/grid_theme_data.dart' show TablexThemeData, TablexCheckboxTheme;
+import '../../theme/grid_theme_data.dart'
+    show TablexThemeData, TablexCheckboxTheme;
 import '../../../i18n/strings.g.dart';
 import 'cell_widget.dart';
 
@@ -202,8 +203,7 @@ class _TablexBodyRowState<TRow> extends State<_TablexBodyRow<TRow>> {
                 onTap: widget.onToggleSelection,
               ),
             ...widget.visible.map((col) {
-              final w =
-                  widget.columnWidths[col.fieldKey] ?? col.width ?? 150.0;
+              final w = widget.columnWidths[col.fieldKey] ?? col.width ?? 150.0;
               final isEditing = widget.state.editingRowIndex == index &&
                   widget.state.editingField == col.fieldKey;
               return TablexCellWidget<TRow>(

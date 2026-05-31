@@ -5,7 +5,7 @@ import 'package:file_picker/file_picker.dart';
 
 Future<bool> saveFile(String filename, Uint8List bytes) async {
   final ext = filename.split('.').last;
-  final path = await FilePicker.platform.saveFile(
+  final path = await FilePicker.saveFile(
     dialogTitle: 'Save $filename',
     fileName: filename,
     type: FileType.custom,

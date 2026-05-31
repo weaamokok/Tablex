@@ -59,12 +59,9 @@ class _FilterPill<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rawParam =
-        controller.state.query.params[filter.key] as String? ?? '';
-    final selectedValues = rawParam
-        .split(',')
-        .where((s) => s.isNotEmpty)
-        .toList();
+    final rawParam = controller.state.query.params[filter.key] as String? ?? '';
+    final selectedValues =
+        rawParam.split(',').where((s) => s.isNotEmpty).toList();
 
     return Padding(
       padding: const EdgeInsets.only(right: 6),

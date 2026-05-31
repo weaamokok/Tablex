@@ -475,8 +475,7 @@ class _TablexState<T> extends State<Tablex<T>> {
       _preloadSkeletonIfNeeded();
       if (widget._variant == _TablexVariant.infinite) {
         _verticalScroll.addListener(_onInfiniteScroll);
-        WidgetsBinding.instance
-            .addPostFrameCallback((_) => _fetchForward());
+        WidgetsBinding.instance.addPostFrameCallback((_) => _fetchForward());
       }
     }
 
@@ -662,7 +661,8 @@ class _TablexState<T> extends State<Tablex<T>> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted || !_verticalScroll.hasClients) return;
           final target = _verticalScroll.offset - compensation;
-          _verticalScroll.jumpTo(target.clamp(0.0, _verticalScroll.position.maxScrollExtent));
+          _verticalScroll.jumpTo(
+              target.clamp(0.0, _verticalScroll.position.maxScrollExtent));
         });
       }
 
@@ -749,7 +749,9 @@ class _TablexState<T> extends State<Tablex<T>> {
       _fetchForward();
     }
 
-    if (pos.pixels <= lookahead && _loadedPages.isNotEmpty && _loadedPages.first > 1) {
+    if (pos.pixels <= lookahead &&
+        _loadedPages.isNotEmpty &&
+        _loadedPages.first > 1) {
       _fetchBackward();
     }
   }
@@ -770,8 +772,8 @@ class _TablexState<T> extends State<Tablex<T>> {
       ...state.hiddenColumnFields,
       if (widget._hideEmptyColumns)
         ...ordered
-            .where((col) => _controller.rows
-                .every((r) => (r.cells[col.fieldKey]?.toString() ?? '').isEmpty))
+            .where((col) => _controller.rows.every(
+                (r) => (r.cells[col.fieldKey]?.toString() ?? '').isEmpty))
             .map((col) => col.fieldKey),
     };
     // Error replaces the table entirely.
@@ -810,7 +812,10 @@ class _TablexState<T> extends State<Tablex<T>> {
       } else {
         // No loadingBuilder — centred spinner over the empty body area.
         resolvedBody = Stack(
-          children: [tableBody, const Center(child: CircularProgressIndicator())],
+          children: [
+            tableBody,
+            const Center(child: CircularProgressIndicator())
+          ],
         );
       }
     } else {
@@ -864,9 +869,7 @@ class _TablexState<T> extends State<Tablex<T>> {
                     onResizeUpdate: widget._enableColumnResize
                         ? _controller.setColumnWidth
                         : null,
-                    onResizeEnd: widget._enableColumnResize
-                        ? (_, __) {}
-                        : null,
+                    onResizeEnd: widget._enableColumnResize ? (_, __) {} : null,
                     onReorder: _onReorder,
                     selectionMode: widget._selectionMode,
                     selectedCount: _controller.selectedRows.length,

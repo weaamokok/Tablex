@@ -257,18 +257,31 @@ class _TablexStringsEn implements TablexStrings {
     'isNotEmpty': 'is not empty',
   };
 
-  @override String get noData => 'No data';
-  @override String showing(int start, int end, int total) => 'Showing $start–$end of $total';
-  @override String get noResults => 'No results';
-  @override String get previous => 'Previous';
-  @override String get next => 'Next';
-  @override String get clearAll => 'Clear all';
-  @override String get cancel => 'Cancel';
-  @override String get apply => 'Apply';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '$count selected';
-  @override String get clear => 'Clear';
-  @override String get manageColumns => 'Manage columns';
+  @override
+  String get noData => 'No data';
+  @override
+  String showing(int start, int end, int total) =>
+      'Showing $start–$end of $total';
+  @override
+  String get noResults => 'No results';
+  @override
+  String get previous => 'Previous';
+  @override
+  String get next => 'Next';
+  @override
+  String get clearAll => 'Clear all';
+  @override
+  String get cancel => 'Cancel';
+  @override
+  String get apply => 'Apply';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '$count selected';
+  @override
+  String get clear => 'Clear';
+  @override
+  String get manageColumns => 'Manage columns';
 }
 
 // ============================================================================
@@ -292,18 +305,30 @@ class _TablexStringsAr implements TablexStrings {
     'isNotEmpty': 'غير فارغ',
   };
 
-  @override String get noData => 'لا توجد بيانات';
-  @override String showing(int start, int end, int total) => 'عرض $start–$end من $total';
-  @override String get noResults => 'لا توجد نتائج';
-  @override String get previous => 'السابق';
-  @override String get next => 'التالي';
-  @override String get clearAll => 'مسح الكل';
-  @override String get cancel => 'إلغاء';
-  @override String get apply => 'تطبيق';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => 'تم تحديد $count';
-  @override String get clear => 'مسح';
-  @override String get manageColumns => 'إدارة الأعمدة';
+  @override
+  String get noData => 'لا توجد بيانات';
+  @override
+  String showing(int start, int end, int total) => 'عرض $start–$end من $total';
+  @override
+  String get noResults => 'لا توجد نتائج';
+  @override
+  String get previous => 'السابق';
+  @override
+  String get next => 'التالي';
+  @override
+  String get clearAll => 'مسح الكل';
+  @override
+  String get cancel => 'إلغاء';
+  @override
+  String get apply => 'تطبيق';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => 'تم تحديد $count';
+  @override
+  String get clear => 'مسح';
+  @override
+  String get manageColumns => 'إدارة الأعمدة';
 }
 
 // ============================================================================
@@ -327,18 +352,30 @@ class _TablexStringsZh implements TablexStrings {
     'isNotEmpty': '不为空',
   };
 
-  @override String get noData => '暂无数据';
-  @override String showing(int start, int end, int total) => '显示 $start–$end，共 $total 条';
-  @override String get noResults => '无结果';
-  @override String get previous => '上一页';
-  @override String get next => '下一页';
-  @override String get clearAll => '清除全部';
-  @override String get cancel => '取消';
-  @override String get apply => '应用';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '已选择 $count 项';
-  @override String get clear => '清除';
-  @override String get manageColumns => '管理列';
+  @override
+  String get noData => '暂无数据';
+  @override
+  String showing(int start, int end, int total) => '显示 $start–$end，共 $total 条';
+  @override
+  String get noResults => '无结果';
+  @override
+  String get previous => '上一页';
+  @override
+  String get next => '下一页';
+  @override
+  String get clearAll => '清除全部';
+  @override
+  String get cancel => '取消';
+  @override
+  String get apply => '应用';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '已选择 $count 项';
+  @override
+  String get clear => '清除';
+  @override
+  String get manageColumns => '管理列';
 }
 
 // ============================================================================
@@ -362,18 +399,31 @@ class _TablexStringsHi implements TablexStrings {
     'isNotEmpty': 'खाली नहीं है',
   };
 
-  @override String get noData => 'कोई डेटा नहीं';
-  @override String showing(int start, int end, int total) => '$start–$end दिखा रहे हैं, कुल $total में से';
-  @override String get noResults => 'कोई परिणाम नहीं';
-  @override String get previous => 'पिछला';
-  @override String get next => 'अगला';
-  @override String get clearAll => 'सभी साफ़ करें';
-  @override String get cancel => 'रद्द करें';
-  @override String get apply => 'लागू करें';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '$count चयनित';
-  @override String get clear => 'साफ़ करें';
-  @override String get manageColumns => 'कॉलम प्रबंधित करें';
+  @override
+  String get noData => 'कोई डेटा नहीं';
+  @override
+  String showing(int start, int end, int total) =>
+      '$start–$end दिखा रहे हैं, कुल $total में से';
+  @override
+  String get noResults => 'कोई परिणाम नहीं';
+  @override
+  String get previous => 'पिछला';
+  @override
+  String get next => 'अगला';
+  @override
+  String get clearAll => 'सभी साफ़ करें';
+  @override
+  String get cancel => 'रद्द करें';
+  @override
+  String get apply => 'लागू करें';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '$count चयनित';
+  @override
+  String get clear => 'साफ़ करें';
+  @override
+  String get manageColumns => 'कॉलम प्रबंधित करें';
 }
 
 // ============================================================================
@@ -397,18 +447,31 @@ class _TablexStringsEs implements TablexStrings {
     'isNotEmpty': 'no está vacío',
   };
 
-  @override String get noData => 'Sin datos';
-  @override String showing(int start, int end, int total) => 'Mostrando $start–$end de $total';
-  @override String get noResults => 'Sin resultados';
-  @override String get previous => 'Anterior';
-  @override String get next => 'Siguiente';
-  @override String get clearAll => 'Borrar todo';
-  @override String get cancel => 'Cancelar';
-  @override String get apply => 'Aplicar';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '$count seleccionados';
-  @override String get clear => 'Borrar';
-  @override String get manageColumns => 'Gestionar columnas';
+  @override
+  String get noData => 'Sin datos';
+  @override
+  String showing(int start, int end, int total) =>
+      'Mostrando $start–$end de $total';
+  @override
+  String get noResults => 'Sin resultados';
+  @override
+  String get previous => 'Anterior';
+  @override
+  String get next => 'Siguiente';
+  @override
+  String get clearAll => 'Borrar todo';
+  @override
+  String get cancel => 'Cancelar';
+  @override
+  String get apply => 'Aplicar';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '$count seleccionados';
+  @override
+  String get clear => 'Borrar';
+  @override
+  String get manageColumns => 'Gestionar columnas';
 }
 
 // ============================================================================
@@ -432,18 +495,31 @@ class _TablexStringsFr implements TablexStrings {
     'isNotEmpty': "n'est pas vide",
   };
 
-  @override String get noData => 'Aucune donnée';
-  @override String showing(int start, int end, int total) => 'Affichage $start–$end sur $total';
-  @override String get noResults => 'Aucun résultat';
-  @override String get previous => 'Précédent';
-  @override String get next => 'Suivant';
-  @override String get clearAll => 'Tout effacer';
-  @override String get cancel => 'Annuler';
-  @override String get apply => 'Appliquer';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '$count sélectionné(s)';
-  @override String get clear => 'Effacer';
-  @override String get manageColumns => 'Gérer les colonnes';
+  @override
+  String get noData => 'Aucune donnée';
+  @override
+  String showing(int start, int end, int total) =>
+      'Affichage $start–$end sur $total';
+  @override
+  String get noResults => 'Aucun résultat';
+  @override
+  String get previous => 'Précédent';
+  @override
+  String get next => 'Suivant';
+  @override
+  String get clearAll => 'Tout effacer';
+  @override
+  String get cancel => 'Annuler';
+  @override
+  String get apply => 'Appliquer';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '$count sélectionné(s)';
+  @override
+  String get clear => 'Effacer';
+  @override
+  String get manageColumns => 'Gérer les colonnes';
 }
 
 // ============================================================================
@@ -467,18 +543,31 @@ class _TablexStringsBn implements TablexStrings {
     'isNotEmpty': 'খালি নয়',
   };
 
-  @override String get noData => 'কোনো তথ্য নেই';
-  @override String showing(int start, int end, int total) => '$start–$end দেখানো হচ্ছে, মোট $total';
-  @override String get noResults => 'কোনো ফলাফল নেই';
-  @override String get previous => 'পূর্ববর্তী';
-  @override String get next => 'পরবর্তী';
-  @override String get clearAll => 'সব মুছুন';
-  @override String get cancel => 'বাতিল';
-  @override String get apply => 'প্রয়োগ করুন';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '${count}টি নির্বাচিত';
-  @override String get clear => 'মুছুন';
-  @override String get manageColumns => 'কলাম পরিচালনা করুন';
+  @override
+  String get noData => 'কোনো তথ্য নেই';
+  @override
+  String showing(int start, int end, int total) =>
+      '$start–$end দেখানো হচ্ছে, মোট $total';
+  @override
+  String get noResults => 'কোনো ফলাফল নেই';
+  @override
+  String get previous => 'পূর্ববর্তী';
+  @override
+  String get next => 'পরবর্তী';
+  @override
+  String get clearAll => 'সব মুছুন';
+  @override
+  String get cancel => 'বাতিল';
+  @override
+  String get apply => 'প্রয়োগ করুন';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '${count}টি নির্বাচিত';
+  @override
+  String get clear => 'মুছুন';
+  @override
+  String get manageColumns => 'কলাম পরিচালনা করুন';
 }
 
 // ============================================================================
@@ -502,18 +591,31 @@ class _TablexStringsPt implements TablexStrings {
     'isNotEmpty': 'não está vazio',
   };
 
-  @override String get noData => 'Sem dados';
-  @override String showing(int start, int end, int total) => 'Mostrando $start–$end de $total';
-  @override String get noResults => 'Sem resultados';
-  @override String get previous => 'Anterior';
-  @override String get next => 'Próximo';
-  @override String get clearAll => 'Limpar tudo';
-  @override String get cancel => 'Cancelar';
-  @override String get apply => 'Aplicar';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '$count selecionados';
-  @override String get clear => 'Limpar';
-  @override String get manageColumns => 'Gerenciar colunas';
+  @override
+  String get noData => 'Sem dados';
+  @override
+  String showing(int start, int end, int total) =>
+      'Mostrando $start–$end de $total';
+  @override
+  String get noResults => 'Sem resultados';
+  @override
+  String get previous => 'Anterior';
+  @override
+  String get next => 'Próximo';
+  @override
+  String get clearAll => 'Limpar tudo';
+  @override
+  String get cancel => 'Cancelar';
+  @override
+  String get apply => 'Aplicar';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '$count selecionados';
+  @override
+  String get clear => 'Limpar';
+  @override
+  String get manageColumns => 'Gerenciar colunas';
 }
 
 // ============================================================================
@@ -537,18 +639,31 @@ class _TablexStringsRu implements TablexStrings {
     'isNotEmpty': 'не пусто',
   };
 
-  @override String get noData => 'Нет данных';
-  @override String showing(int start, int end, int total) => 'Показано $start–$end из $total';
-  @override String get noResults => 'Нет результатов';
-  @override String get previous => 'Назад';
-  @override String get next => 'Вперёд';
-  @override String get clearAll => 'Очистить всё';
-  @override String get cancel => 'Отмена';
-  @override String get apply => 'Применить';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => 'Выбрано $count';
-  @override String get clear => 'Очистить';
-  @override String get manageColumns => 'Управление столбцами';
+  @override
+  String get noData => 'Нет данных';
+  @override
+  String showing(int start, int end, int total) =>
+      'Показано $start–$end из $total';
+  @override
+  String get noResults => 'Нет результатов';
+  @override
+  String get previous => 'Назад';
+  @override
+  String get next => 'Вперёд';
+  @override
+  String get clearAll => 'Очистить всё';
+  @override
+  String get cancel => 'Отмена';
+  @override
+  String get apply => 'Применить';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => 'Выбрано $count';
+  @override
+  String get clear => 'Очистить';
+  @override
+  String get manageColumns => 'Управление столбцами';
 }
 
 // ============================================================================
@@ -572,18 +687,31 @@ class _TablexStringsUr implements TablexStrings {
     'isNotEmpty': 'خالی نہیں',
   };
 
-  @override String get noData => 'کوئی ڈیٹا نہیں';
-  @override String showing(int start, int end, int total) => '$start–$end دکھا رہے ہیں، کل $total میں سے';
-  @override String get noResults => 'کوئی نتیجہ نہیں';
-  @override String get previous => 'پچھلا';
-  @override String get next => 'اگلا';
-  @override String get clearAll => 'سب صاف کریں';
-  @override String get cancel => 'منسوخ';
-  @override String get apply => 'لاگو کریں';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '$count منتخب';
-  @override String get clear => 'صاف کریں';
-  @override String get manageColumns => 'کالم منظم کریں';
+  @override
+  String get noData => 'کوئی ڈیٹا نہیں';
+  @override
+  String showing(int start, int end, int total) =>
+      '$start–$end دکھا رہے ہیں، کل $total میں سے';
+  @override
+  String get noResults => 'کوئی نتیجہ نہیں';
+  @override
+  String get previous => 'پچھلا';
+  @override
+  String get next => 'اگلا';
+  @override
+  String get clearAll => 'سب صاف کریں';
+  @override
+  String get cancel => 'منسوخ';
+  @override
+  String get apply => 'لاگو کریں';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '$count منتخب';
+  @override
+  String get clear => 'صاف کریں';
+  @override
+  String get manageColumns => 'کالم منظم کریں';
 }
 
 // ============================================================================
@@ -607,18 +735,31 @@ class _TablexStringsId implements TablexStrings {
     'isNotEmpty': 'tidak kosong',
   };
 
-  @override String get noData => 'Tidak ada data';
-  @override String showing(int start, int end, int total) => 'Menampilkan $start–$end dari $total';
-  @override String get noResults => 'Tidak ada hasil';
-  @override String get previous => 'Sebelumnya';
-  @override String get next => 'Berikutnya';
-  @override String get clearAll => 'Hapus semua';
-  @override String get cancel => 'Batal';
-  @override String get apply => 'Terapkan';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '$count dipilih';
-  @override String get clear => 'Hapus';
-  @override String get manageColumns => 'Kelola kolom';
+  @override
+  String get noData => 'Tidak ada data';
+  @override
+  String showing(int start, int end, int total) =>
+      'Menampilkan $start–$end dari $total';
+  @override
+  String get noResults => 'Tidak ada hasil';
+  @override
+  String get previous => 'Sebelumnya';
+  @override
+  String get next => 'Berikutnya';
+  @override
+  String get clearAll => 'Hapus semua';
+  @override
+  String get cancel => 'Batal';
+  @override
+  String get apply => 'Terapkan';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '$count dipilih';
+  @override
+  String get clear => 'Hapus';
+  @override
+  String get manageColumns => 'Kelola kolom';
 }
 
 // ============================================================================
@@ -642,18 +783,31 @@ class _TablexStringsDe implements TablexStrings {
     'isNotEmpty': 'ist nicht leer',
   };
 
-  @override String get noData => 'Keine Daten';
-  @override String showing(int start, int end, int total) => 'Zeige $start–$end von $total';
-  @override String get noResults => 'Keine Ergebnisse';
-  @override String get previous => 'Zurück';
-  @override String get next => 'Weiter';
-  @override String get clearAll => 'Alle löschen';
-  @override String get cancel => 'Abbrechen';
-  @override String get apply => 'Anwenden';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '$count ausgewählt';
-  @override String get clear => 'Löschen';
-  @override String get manageColumns => 'Spalten verwalten';
+  @override
+  String get noData => 'Keine Daten';
+  @override
+  String showing(int start, int end, int total) =>
+      'Zeige $start–$end von $total';
+  @override
+  String get noResults => 'Keine Ergebnisse';
+  @override
+  String get previous => 'Zurück';
+  @override
+  String get next => 'Weiter';
+  @override
+  String get clearAll => 'Alle löschen';
+  @override
+  String get cancel => 'Abbrechen';
+  @override
+  String get apply => 'Anwenden';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '$count ausgewählt';
+  @override
+  String get clear => 'Löschen';
+  @override
+  String get manageColumns => 'Spalten verwalten';
 }
 
 // ============================================================================
@@ -677,18 +831,30 @@ class _TablexStringsJa implements TablexStrings {
     'isNotEmpty': '空ではない',
   };
 
-  @override String get noData => 'データなし';
-  @override String showing(int start, int end, int total) => '$total件中$start–$end件を表示';
-  @override String get noResults => '結果なし';
-  @override String get previous => '前へ';
-  @override String get next => '次へ';
-  @override String get clearAll => 'すべてクリア';
-  @override String get cancel => 'キャンセル';
-  @override String get apply => '適用';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '$count件選択中';
-  @override String get clear => 'クリア';
-  @override String get manageColumns => '列の管理';
+  @override
+  String get noData => 'データなし';
+  @override
+  String showing(int start, int end, int total) => '$total件中$start–$end件を表示';
+  @override
+  String get noResults => '結果なし';
+  @override
+  String get previous => '前へ';
+  @override
+  String get next => '次へ';
+  @override
+  String get clearAll => 'すべてクリア';
+  @override
+  String get cancel => 'キャンセル';
+  @override
+  String get apply => '適用';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '$count件選択中';
+  @override
+  String get clear => 'クリア';
+  @override
+  String get manageColumns => '列の管理';
 }
 
 // ============================================================================
@@ -712,18 +878,31 @@ class _TablexStringsHa implements TablexStrings {
     'isNotEmpty': 'ba fanko ba',
   };
 
-  @override String get noData => 'Babu bayani';
-  @override String showing(int start, int end, int total) => 'Ana nuna $start–$end daga cikin $total';
-  @override String get noResults => 'Babu sakamako';
-  @override String get previous => 'Na baya';
-  @override String get next => 'Na gaba';
-  @override String get clearAll => 'Share duk';
-  @override String get cancel => 'Soke';
-  @override String get apply => 'Yi';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => 'An zaɓi $count';
-  @override String get clear => 'Share';
-  @override String get manageColumns => 'Sarrafa ginshiƙai';
+  @override
+  String get noData => 'Babu bayani';
+  @override
+  String showing(int start, int end, int total) =>
+      'Ana nuna $start–$end daga cikin $total';
+  @override
+  String get noResults => 'Babu sakamako';
+  @override
+  String get previous => 'Na baya';
+  @override
+  String get next => 'Na gaba';
+  @override
+  String get clearAll => 'Share duk';
+  @override
+  String get cancel => 'Soke';
+  @override
+  String get apply => 'Yi';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => 'An zaɓi $count';
+  @override
+  String get clear => 'Share';
+  @override
+  String get manageColumns => 'Sarrafa ginshiƙai';
 }
 
 // ============================================================================
@@ -747,18 +926,31 @@ class _TablexStringsVi implements TablexStrings {
     'isNotEmpty': 'không trống',
   };
 
-  @override String get noData => 'Không có dữ liệu';
-  @override String showing(int start, int end, int total) => 'Hiển thị $start–$end trong $total';
-  @override String get noResults => 'Không có kết quả';
-  @override String get previous => 'Trước';
-  @override String get next => 'Tiếp';
-  @override String get clearAll => 'Xóa tất cả';
-  @override String get cancel => 'Hủy';
-  @override String get apply => 'Áp dụng';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => 'Đã chọn $count';
-  @override String get clear => 'Xóa';
-  @override String get manageColumns => 'Quản lý cột';
+  @override
+  String get noData => 'Không có dữ liệu';
+  @override
+  String showing(int start, int end, int total) =>
+      'Hiển thị $start–$end trong $total';
+  @override
+  String get noResults => 'Không có kết quả';
+  @override
+  String get previous => 'Trước';
+  @override
+  String get next => 'Tiếp';
+  @override
+  String get clearAll => 'Xóa tất cả';
+  @override
+  String get cancel => 'Hủy';
+  @override
+  String get apply => 'Áp dụng';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => 'Đã chọn $count';
+  @override
+  String get clear => 'Xóa';
+  @override
+  String get manageColumns => 'Quản lý cột';
 }
 
 // ============================================================================
@@ -782,16 +974,29 @@ class _TablexStringsIt implements TablexStrings {
     'isNotEmpty': 'non è vuoto',
   };
 
-  @override String get noData => 'Nessun dato';
-  @override String showing(int start, int end, int total) => 'Mostrando $start–$end di $total';
-  @override String get noResults => 'Nessun risultato';
-  @override String get previous => 'Precedente';
-  @override String get next => 'Successivo';
-  @override String get clearAll => 'Cancella tutto';
-  @override String get cancel => 'Annulla';
-  @override String get apply => 'Applica';
-  @override String filterOperatorLabel(String k) => _op[k] ?? k;
-  @override String selected(int count) => '$count selezionati';
-  @override String get clear => 'Cancella';
-  @override String get manageColumns => 'Gestisci colonne';
+  @override
+  String get noData => 'Nessun dato';
+  @override
+  String showing(int start, int end, int total) =>
+      'Mostrando $start–$end di $total';
+  @override
+  String get noResults => 'Nessun risultato';
+  @override
+  String get previous => 'Precedente';
+  @override
+  String get next => 'Successivo';
+  @override
+  String get clearAll => 'Cancella tutto';
+  @override
+  String get cancel => 'Annulla';
+  @override
+  String get apply => 'Applica';
+  @override
+  String filterOperatorLabel(String k) => _op[k] ?? k;
+  @override
+  String selected(int count) => '$count selezionati';
+  @override
+  String get clear => 'Cancella';
+  @override
+  String get manageColumns => 'Gestisci colonne';
 }

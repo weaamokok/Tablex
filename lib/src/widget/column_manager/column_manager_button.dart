@@ -114,9 +114,7 @@ class TablexColumnManagerButton<TRow> extends StatelessWidget {
               return MenuItemButton(
                 onPressed: onToggle,
                 leadingIcon: Icon(
-                  isVisible
-                      ? Icons.check_box
-                      : Icons.check_box_outline_blank,
+                  isVisible ? Icons.check_box : Icons.check_box_outline_blank,
                   size: 18,
                 ),
                 child: Text(col.title),

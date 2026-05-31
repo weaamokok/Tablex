@@ -9,7 +9,7 @@ Future<void> saveFile(String filename, Uint8List bytes) async {
   if (Platform.isAndroid || Platform.isIOS) {
     // On mobile, file_picker.saveFile requires bytes and writes the file
     // itself — it returns the saved path but no manual write is needed.
-    await FilePicker.platform.saveFile(
+    await FilePicker.saveFile(
       fileName: filename,
       type: FileType.custom,
       allowedExtensions: [ext],
@@ -19,7 +19,7 @@ Future<void> saveFile(String filename, Uint8List bytes) async {
   }
 
   // Desktop: show a save dialog, then write to the chosen path.
-  final path = await FilePicker.platform.saveFile(
+  final path = await FilePicker.saveFile(
     dialogTitle: 'Save $filename',
     fileName: filename,
     type: FileType.custom,

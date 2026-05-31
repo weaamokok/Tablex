@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,6 +7,7 @@ import '../../controller/controller.dart';
 import '../../model/column.dart';
 import '../../model/row.dart';
 import '../column_manager/column_manager_button.dart';
+import '_file_pick.dart';
 import '_file_save.dart';
 
 /// A pre-built toolbar widget that sits above a Tablex grid and provides
@@ -251,12 +251,7 @@ class _TablexToolbarState<T> extends State<TablexToolbar<T>> {
       await widget.onImportCsv!();
       return;
     }
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
-      withData: true,
-    );
-    final bytes = result?.files.firstOrNull?.bytes;
+    final bytes = await pickFile(['csv']);
     if (bytes == null) return;
     widget.controller.importFromCsv(
       utf8.decode(bytes),
@@ -269,12 +264,7 @@ class _TablexToolbarState<T> extends State<TablexToolbar<T>> {
       await widget.onImportExcel!();
       return;
     }
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xlsx'],
-      withData: true,
-    );
-    final bytes = result?.files.firstOrNull?.bytes;
+    final bytes = await pickFile(['xlsx']);
     if (bytes == null) return;
     widget.controller.importFromExcel(bytes, widget.importRowFactory!);
   }

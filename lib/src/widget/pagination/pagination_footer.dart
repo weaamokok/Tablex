@@ -113,8 +113,7 @@ class TablexPaginationFooter<T> extends StatefulWidget {
       _TablexPaginationFooterState<T>();
 }
 
-class _TablexPaginationFooterState<T>
-    extends State<TablexPaginationFooter<T>> {
+class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
   int _totalRows = 0;
   int _totalPages = 1;
 
@@ -553,8 +552,7 @@ class _CompactPageIndicatorState extends State<_CompactPageIndicator> {
   @override
   void didUpdateWidget(_CompactPageIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_focus.hasFocus &&
-        oldWidget.info.page != widget.info.page) {
+    if (!_focus.hasFocus && oldWidget.info.page != widget.info.page) {
       _text.text = '${widget.info.page}';
     }
   }

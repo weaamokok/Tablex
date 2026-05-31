@@ -22,8 +22,7 @@ class TablexPageSizeSelector extends StatelessWidget {
     return DropdownButton<int>(
       value: effectiveValue,
       items: options
-          .map((s) =>
-              DropdownMenuItem(value: s, child: Text('$s / page')))
+          .map((s) => DropdownMenuItem(value: s, child: Text('$s / page')))
           .toList(),
       onChanged: (v) => v != null ? onChanged(v) : null,
       underline: const SizedBox.shrink(),

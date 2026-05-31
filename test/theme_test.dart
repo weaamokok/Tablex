@@ -59,8 +59,7 @@ void main() {
       final ctx = await _pumpContext(tester);
       const shape = RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(4)));
-      final resolved =
-          const TablexCheckboxTheme(shape: shape).resolve(ctx);
+      final resolved = const TablexCheckboxTheme(shape: shape).resolve(ctx);
       expect(resolved.shape, shape);
     });
 
@@ -74,9 +73,9 @@ void main() {
       );
       final copy = original.copyWith(activeColor: Colors.purple, size: 22.0);
       expect(copy.activeColor, Colors.purple);
-      expect(copy.checkColor, Colors.blue);   // unchanged
+      expect(copy.checkColor, Colors.blue); // unchanged
       expect(copy.borderColor, Colors.green); // unchanged
-      expect(copy.borderWidth, 2.0);          // unchanged
+      expect(copy.borderWidth, 2.0); // unchanged
       expect(copy.size, 22.0);
     });
 
@@ -174,8 +173,7 @@ void main() {
         checkboxTheme: TablexCheckboxTheme(activeColor: Colors.red),
       );
       final copy = original.copyWith(
-        checkboxTheme:
-            const TablexCheckboxTheme(activeColor: Colors.blue),
+        checkboxTheme: const TablexCheckboxTheme(activeColor: Colors.blue),
       );
       expect(copy.checkboxTheme!.activeColor, Colors.blue);
     });
@@ -185,8 +183,7 @@ void main() {
       expect(t.iconSize, 15);
       expect(t.showVerticalCellBorders, false);
       expect(t.showVerticalHeaderBorders, false);
-      expect(t.borderRadius,
-          const BorderRadius.all(Radius.circular(8)));
+      expect(t.borderRadius, const BorderRadius.all(Radius.circular(8)));
     });
   });
 }

@@ -112,7 +112,8 @@ class TablexController<T> extends ChangeNotifier {
 
   /// All rows currently held by the controller, in display order.
   List<TablexRow<T>> get rows => _rowOrder.map((k) {
-        assert(_rowMap.containsKey(k), 'Row key "$k" is in _rowOrder but missing from _rowMap — this is a controller bug');
+        assert(_rowMap.containsKey(k),
+            'Row key "$k" is in _rowOrder but missing from _rowMap — this is a controller bug');
         return _rowMap[k]!;
       }).toList(growable: false);
 
@@ -200,7 +201,8 @@ class TablexController<T> extends ChangeNotifier {
     final evicted = _rowOrder.sublist(0, n);
     _rowOrder.removeRange(0, n);
     for (final key in evicted) {
-      assert(_rowMap.containsKey(key), 'Row key "$key" missing from _rowMap during removeFirstRows — controller bug');
+      assert(_rowMap.containsKey(key),
+          'Row key "$key" missing from _rowMap during removeFirstRows — controller bug');
       _rowMap.remove(key);
     }
     _notify();
@@ -218,7 +220,8 @@ class TablexController<T> extends ChangeNotifier {
     final evicted = _rowOrder.sublist(start);
     _rowOrder.removeRange(start, _rowOrder.length);
     for (final key in evicted) {
-      assert(_rowMap.containsKey(key), 'Row key "$key" missing from _rowMap during removeLastRows — controller bug');
+      assert(_rowMap.containsKey(key),
+          'Row key "$key" missing from _rowMap during removeLastRows — controller bug');
       _rowMap.remove(key);
     }
     _notify();
@@ -831,8 +834,7 @@ class TablexController<T> extends ChangeNotifier {
           .toList(growable: false);
       dataStart = 1;
     } else {
-      keys = fieldKeys ??
-          List.generate(dataRows.first.length, (i) => 'col$i');
+      keys = fieldKeys ?? List.generate(dataRows.first.length, (i) => 'col$i');
       dataStart = 0;
     }
 

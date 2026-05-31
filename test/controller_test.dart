@@ -76,8 +76,7 @@ void main() {
       final c = _ctrl(mode: TablexSelectionMode.multiple);
       c.replaceRows([_alice, _bob], rowBuilder: _row);
       c.selectRow(_alice);
-      c.replaceRows([_alice, _bob],
-          rowBuilder: _row, clearSelection: false);
+      c.replaceRows([_alice, _bob], rowBuilder: _row, clearSelection: false);
       expect(c.selectedRows, [_alice]);
     });
 
@@ -114,8 +113,7 @@ void main() {
     test('updateRow out of bounds throws RangeError', () {
       final c = _ctrl();
       c.replaceRows([_alice], rowBuilder: _row);
-      expect(() => c.updateRow(5, _bob, rowBuilder: _row),
-          throwsRangeError);
+      expect(() => c.updateRow(5, _bob, rowBuilder: _row), throwsRangeError);
     });
 
     test('removeRow removes at index', () {
@@ -137,7 +135,9 @@ void main() {
       c.replaceRows(
         [_alice, _bob],
         rowBuilder: (i) => TablexRow<_Item>(
-          data: i, cells: {'id': i.id, 'name': i.name}, key: 'key_${i.id}',
+          data: i,
+          cells: {'id': i.id, 'name': i.name},
+          key: 'key_${i.id}',
         ),
       );
       c.removeRowsByKey(['key_1']);
@@ -585,8 +585,7 @@ void main() {
     test('dispose prevents further method calls', () {
       final c = _ctrl();
       c.dispose();
-      expect(() => c.replaceRows([_alice], rowBuilder: _row),
-          throwsStateError);
+      expect(() => c.replaceRows([_alice], rowBuilder: _row), throwsStateError);
       expect(() => c.selectRow(_alice), throwsStateError);
       expect(() => c.goToPage(2), throwsStateError);
     });
@@ -614,12 +613,12 @@ void main() {
       c.replaceRows([_alice], rowBuilder: _row);
       count = 0;
 
-      c.goToPage(1);         // already page 1
-      c.previousPage();      // already at 1, no-op
-      c.clearSelection();    // nothing selected, no-op
-      c.setLoading(false);   // already false, no-op
+      c.goToPage(1); // already page 1
+      c.previousPage(); // already at 1, no-op
+      c.clearSelection(); // nothing selected, no-op
+      c.setLoading(false); // already false, no-op
       c.resetColumnWidths(); // nothing to reset, no-op
-      c.resetColumnOrder();  // nothing to reset, no-op
+      c.resetColumnOrder(); // nothing to reset, no-op
 
       expect(count, 0);
     });
@@ -719,7 +718,8 @@ void main() {
       expect(count, 1);
     });
 
-    test('prepend + removeLastRows simulates backward-scroll window eviction', () {
+    test('prepend + removeLastRows simulates backward-scroll window eviction',
+        () {
       final c = _ctrl();
       c.replaceRows([_bob, _carol], rowBuilder: _row);
       c.prependRows([_alice], rowBuilder: _row);
@@ -728,7 +728,9 @@ void main() {
       expect(c.getAllRowData(), [_alice, _bob]);
     });
 
-    test('removeFirstRows + appendRows simulates forward-scroll window eviction', () {
+    test(
+        'removeFirstRows + appendRows simulates forward-scroll window eviction',
+        () {
       final c = _ctrl();
       c.replaceRows([_alice, _bob], rowBuilder: _row);
       c.removeFirstRows(1);

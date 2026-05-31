@@ -65,11 +65,9 @@ Widget _table({
 /// Use this instead of tapping the [Checkbox] directly because the Checkbox is
 /// wrapped in [IgnorePointer] — tapping its bounds hits the GestureDetector
 /// above, not the Checkbox widget itself.
-Future<void> _tapCheckbox(
-    WidgetTester tester, Finder cbFinder) async {
-  final gd = find
-      .ancestor(of: cbFinder, matching: find.byType(GestureDetector))
-      .first;
+Future<void> _tapCheckbox(WidgetTester tester, Finder cbFinder) async {
+  final gd =
+      find.ancestor(of: cbFinder, matching: find.byType(GestureDetector)).first;
   await tester.tap(gd);
 }
 
@@ -139,9 +137,7 @@ void main() {
       ctrl.selectRow(_alice);
       await tester.pump();
 
-      final header = tester
-          .widgetList<Checkbox>(find.byType(Checkbox))
-          .first;
+      final header = tester.widgetList<Checkbox>(find.byType(Checkbox)).first;
       expect(header.value, isNull); // indeterminate
     });
 
@@ -156,14 +152,11 @@ void main() {
       ctrl.selectAll(ctrl.getAllRowData());
       await tester.pump();
 
-      final header = tester
-          .widgetList<Checkbox>(find.byType(Checkbox))
-          .first;
+      final header = tester.widgetList<Checkbox>(find.byType(Checkbox)).first;
       expect(header.value, true);
     });
 
-    testWidgets(
-        'tapping header checkbox when nothing selected calls selectAll',
+    testWidgets('tapping header checkbox when nothing selected calls selectAll',
         (tester) async {
       final ctrl = TablexController<_Item>()
         ..selectionMode = TablexSelectionMode.multiple;
@@ -179,8 +172,7 @@ void main() {
       expect(ctrl.isSelected(_carol), true);
     });
 
-    testWidgets(
-        'tapping header checkbox when all selected calls deselectAll',
+    testWidgets('tapping header checkbox when all selected calls deselectAll',
         (tester) async {
       final ctrl = TablexController<_Item>()
         ..selectionMode = TablexSelectionMode.multiple;
@@ -276,8 +268,7 @@ void main() {
       expect(received, isNotNull);
     });
 
-    testWidgets(
-        'in multiple mode: tapping a row does NOT toggle selection',
+    testWidgets('in multiple mode: tapping a row does NOT toggle selection',
         (tester) async {
       final ctrl = TablexController<_Item>()
         ..selectionMode = TablexSelectionMode.multiple;
@@ -379,8 +370,7 @@ void main() {
       expect(ctrl.selectedRows, isEmpty);
     });
 
-    testWidgets(
-        'header row returns after selection is cleared',
+    testWidgets('header row returns after selection is cleared',
         (tester) async {
       final ctrl = TablexController<_Item>()
         ..selectionMode = TablexSelectionMode.multiple;
@@ -524,8 +514,7 @@ void main() {
       expect(ctrl.selectedRows, isEmpty);
     });
 
-    testWidgets(
-        'selectionActions are ignored when builder is provided',
+    testWidgets('selectionActions are ignored when builder is provided',
         (tester) async {
       bool actionFired = false;
       final ctrl = TablexController<_Item>()

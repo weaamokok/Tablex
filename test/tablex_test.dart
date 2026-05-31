@@ -57,24 +57,26 @@ void main() {
 
     test('replaces sort without touching page', () {
       const q = TablexQuery(page: 3);
-      const sort =
-          TablexColumnSort(field: 'name', direction: TablexSortDirection.ascending);
+      const sort = TablexColumnSort(
+          field: 'name', direction: TablexSortDirection.ascending);
       final q2 = q.copyWith(sort: sort);
       expect(q2.sort, sort);
       expect(q2.page, 3);
     });
 
     test('clearSort: true nullifies sort regardless of sort argument', () {
-      const sort =
-          TablexColumnSort(field: 'name', direction: TablexSortDirection.descending);
+      const sort = TablexColumnSort(
+          field: 'name', direction: TablexSortDirection.descending);
       const q = TablexQuery(sort: sort);
       final q2 = q.copyWith(clearSort: true);
       expect(q2.sort, isNull);
     });
 
-    test('clearSort: false (default) preserves existing sort when no new sort given', () {
-      const sort =
-          TablexColumnSort(field: 'id', direction: TablexSortDirection.ascending);
+    test(
+        'clearSort: false (default) preserves existing sort when no new sort given',
+        () {
+      const sort = TablexColumnSort(
+          field: 'id', direction: TablexSortDirection.ascending);
       const q = TablexQuery(sort: sort);
       final q2 = q.copyWith(page: 2);
       expect(q2.sort, sort);
@@ -93,8 +95,8 @@ void main() {
     });
 
     test('inequality when sort differs', () {
-      const sort =
-          TablexColumnSort(field: 'name', direction: TablexSortDirection.ascending);
+      const sort = TablexColumnSort(
+          field: 'name', direction: TablexSortDirection.ascending);
       const a = TablexQuery(sort: sort);
       const b = TablexQuery();
       expect(a, isNot(b));
@@ -210,7 +212,8 @@ void main() {
       expect(find.byIcon(Icons.arrow_downward), findsNothing);
     });
 
-    testWidgets('sort by numeric ID column orders by integer value', (tester) async {
+    testWidgets('sort by numeric ID column orders by integer value',
+        (tester) async {
       final ctrl = TablexController<_Item>();
       // Insert in non-numeric order
       const d = _Item(10, 'Dave');
@@ -294,7 +297,8 @@ void main() {
       )));
       await tester.pump(); // postFrameCallback → _fetchPage(1) called
 
-      expect(calls.length, 1, reason: 'Initial fetch should have been triggered');
+      expect(calls.length, 1,
+          reason: 'Initial fetch should have been triggered');
 
       // Complete initial fetch
       calls[0].complete(TablexFetchResult(rows: [_alice], totalRows: 1));
@@ -316,7 +320,8 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('fetch error is stored in controller error state', (tester) async {
+    testWidgets('fetch error is stored in controller error state',
+        (tester) async {
       final ctrl = TablexController<_Item>();
       final completer = Completer<TablexFetchResult<_Item>>();
 
@@ -355,7 +360,8 @@ void main() {
 
   // =========================================================================
   group('infinite scroll — initial load', () {
-    testWidgets('first fetch is called with page 1 and fetchSize', (tester) async {
+    testWidgets('first fetch is called with page 1 and fetchSize',
+        (tester) async {
       TablexQuery? captured;
       final completer = Completer<TablexFetchResult<_Item>>();
 
@@ -407,8 +413,7 @@ void main() {
         (tester) async {
       final ctrl = TablexController<_Item>();
       final completer = Completer<TablexFetchResult<_Item>>();
-      final skeletons =
-          List.generate(5, (i) => _Item(-i - 1, 'placeholder'));
+      final skeletons = List.generate(5, (i) => _Item(-i - 1, 'placeholder'));
 
       await tester.pumpWidget(_harness(Tablex.infinite(
         columns: _cols,
@@ -443,7 +448,8 @@ void main() {
       expect(ctrl.getAllRowData(), [_alice, _bob, _carol]);
     });
 
-    testWidgets('fetch error is stored in controller error state', (tester) async {
+    testWidgets('fetch error is stored in controller error state',
+        (tester) async {
       final ctrl = TablexController<_Item>();
       final completer = Completer<TablexFetchResult<_Item>>();
 
@@ -535,8 +541,7 @@ void main() {
       await tester.pump();
 
       // Complete first fetch: alice + bob
-      calls[0]
-          .complete(TablexFetchResult(rows: [_alice, _bob], totalRows: 2));
+      calls[0].complete(TablexFetchResult(rows: [_alice, _bob], totalRows: 2));
       await tester.pumpAndSettle();
       expect(ctrl.getAllRowData(), [_alice, _bob]);
 
@@ -552,8 +557,7 @@ void main() {
           reason: 'Rows must be cleared on sort reset');
 
       // Complete sort fetch with only carol
-      calls.last
-          .complete(TablexFetchResult(rows: [_carol], totalRows: 1));
+      calls.last.complete(TablexFetchResult(rows: [_carol], totalRows: 1));
       await tester.pumpAndSettle();
 
       expect(ctrl.getAllRowData(), [_carol],
@@ -587,13 +591,11 @@ void main() {
       await tester.pump();
 
       // Now complete the stale first fetch (generation already incremented)
-      calls[0]
-          .complete(TablexFetchResult(rows: [_alice, _bob], totalRows: 2));
+      calls[0].complete(TablexFetchResult(rows: [_alice, _bob], totalRows: 2));
       await tester.pump();
 
       // Complete the valid sort fetch
-      calls.last
-          .complete(TablexFetchResult(rows: [_carol], totalRows: 1));
+      calls.last.complete(TablexFetchResult(rows: [_carol], totalRows: 1));
       await tester.pumpAndSettle();
 
       // Only carol should be in the table; alice+bob were from the stale fetch
