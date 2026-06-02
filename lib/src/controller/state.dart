@@ -1,3 +1,4 @@
+import '../model/enums.dart';
 import '../model/query.dart';
 import '../model/response.dart';
 
@@ -16,6 +17,7 @@ class TablexState<T> {
     this.hiddenColumnFields = const {},
     this.columnWidths = const {},
     this.columnOrder = const [],
+    this.frozenColumnFields = const {},
     this.meta,
     this.error,
     this.editingRowIndex,
@@ -46,6 +48,11 @@ class TablexState<T> {
   /// Empty when columns are in their definition order.
   final List<String> columnOrder;
 
+  /// Runtime frozen-side overrides, keyed by [TablexColumnBase.fieldKey].
+  /// When a field is present here its value takes precedence over the static
+  /// [TablexColumnBase.frozen] definition. Empty by default.
+  final Map<String, TablexColumnFrozen> frozenColumnFields;
+
   /// Optional metadata returned by the last fetch (filter chips, extras).
   final TablexResponseMeta? meta;
 
@@ -66,6 +73,7 @@ class TablexState<T> {
     Set<String>? hiddenColumnFields,
     Map<String, double>? columnWidths,
     List<String>? columnOrder,
+    Map<String, TablexColumnFrozen>? frozenColumnFields,
     TablexResponseMeta? meta,
     bool clearMeta = false,
     Object? error,
@@ -83,6 +91,7 @@ class TablexState<T> {
       hiddenColumnFields: hiddenColumnFields ?? this.hiddenColumnFields,
       columnWidths: columnWidths ?? this.columnWidths,
       columnOrder: columnOrder ?? this.columnOrder,
+      frozenColumnFields: frozenColumnFields ?? this.frozenColumnFields,
       meta: clearMeta ? null : (meta ?? this.meta),
       error: clearError ? null : (error ?? this.error),
       editingRowIndex:

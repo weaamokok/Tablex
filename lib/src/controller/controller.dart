@@ -597,6 +597,28 @@ class TablexController<T> extends ChangeNotifier {
     _notify();
   }
 
+  /// Sets the frozen (pinned) side of [field] at runtime, overriding the
+  /// static [TablexColumnBase.frozen] definition.
+  ///
+  /// Pass [TablexColumnFrozen.none] to explicitly unfreeze a column (even if
+  /// it has a non-none static frozen value).
+  void setColumnFrozen(String field, TablexColumnFrozen frozen) {
+    _checkDisposed();
+    final current =
+        Map<String, TablexColumnFrozen>.from(_state.frozenColumnFields)
+          ..[field] = frozen;
+    _state = _state.copyWith(frozenColumnFields: current);
+    _notify();
+  }
+
+  /// Returns the effective frozen side for [field].
+  ///
+  /// A runtime override set via [setColumnFrozen] takes precedence; otherwise
+  /// [staticFrozen] (from the column definition) is returned.
+  TablexColumnFrozen getColumnFrozen(
+          String field, TablexColumnFrozen staticFrozen) =>
+      _state.frozenColumnFields[field] ?? staticFrozen;
+
   // ---------------------------------------------------------------------------
   // Inline editing
   // ---------------------------------------------------------------------------

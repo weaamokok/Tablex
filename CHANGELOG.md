@@ -1,3 +1,16 @@
+## 0.3.0
+
+### New features
+
+* **Frozen / pinned columns** — set `frozen: TablexColumnFrozen.start` or `frozen: TablexColumnFrozen.end` on any `TablexColumn` to pin it to the left or right edge of the grid. Frozen columns remain visible while the user scrolls horizontally.
+  * RTL-aware: `start` pins to the right and `end` to the left in RTL locales. Shadow direction is computed from `Directionality.of(context)`.
+  * Vertical scroll is kept in sync with the main body via dedicated `ScrollController`s. Pointer scroll events and touch drag on frozen panels are forwarded to the main controller so the user can scroll from anywhere.
+  * Sort and column resize work on frozen columns identical to scrollable columns. Drag-to-reorder is intentionally disabled for frozen columns.
+  * Column visibility (`hide: true`) collapses a frozen panel entirely if all its columns are hidden.
+  * Selection summary bar spans the full width of all three panels.
+
+---
+
 ## 0.2.1
 
 ### Bug fixes

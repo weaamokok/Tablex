@@ -3,6 +3,7 @@ import '../../model/column.dart';
 import '../../model/enums.dart';
 import '../../model/row.dart';
 import '../../renderer/cell_context.dart';
+import '../../renderer/cell_renderers.dart';
 import '../../theme/grid_theme_data.dart';
 
 class TablexCellWidget<TRow> extends StatelessWidget {
@@ -58,6 +59,10 @@ class TablexCellWidget<TRow> extends StatelessWidget {
         content = built;
       } else if (rawValue == null && column.showEmptyAsDash) {
         content = _textCell(column.effectivePlaceholder, context);
+      } else if (column.type == TablexColumnType.id ||
+          column.type == TablexColumnType.identifier) {
+        content = TablexRenderers.identifier<TRow>()(
+            row.data, rawValue?.toString() ?? '', ctx);
       } else {
         final formatted = column.formatValueRaw(rawValue);
         content = _textCell(formatted ?? rawValue?.toString() ?? '', context);

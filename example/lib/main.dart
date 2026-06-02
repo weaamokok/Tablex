@@ -268,8 +268,8 @@ List<TablexColumnBase<Employee>> _employeeColumns({
       fieldKey: 'id',
       title: 'Id',
       width: 180,
+      type: TablexColumnType.id,
       valueGetter: (e) => e.id.toString(),
-      cellRenderer: TablexRenderers.identifier(),
     ),
     TablexColumn<Employee, String>(
       fieldKey: 'name',

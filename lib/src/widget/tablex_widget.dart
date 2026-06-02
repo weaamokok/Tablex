@@ -12,6 +12,7 @@ import '../../i18n/strings.g.dart';
 import 'core/body.dart';
 import 'core/column_group_header.dart';
 import 'core/footer_row.dart';
+import 'core/frozen_panel.dart';
 import 'core/header_row.dart';
 import 'pagination/pagination_footer.dart';
 
@@ -442,6 +443,10 @@ class _TablexState<T> extends State<Tablex<T>> {
   final ScrollController _horizontalScroll = ScrollController();
   // Mirrors body scroll so the header stays in sync without sharing a controller.
   final ScrollController _headerHorizontalScroll = ScrollController();
+  // Independent vertical controllers for frozen panels, kept in sync with
+  // _verticalScroll via _syncFrozenScrolls.
+  final ScrollController _frozenStartScroll = ScrollController();
+  final ScrollController _frozenEndScroll = ScrollController();
 
   // Sliding-window infinite scroll state.
   // _loadedPages holds page numbers currently in memory, oldest-first.
@@ -463,6 +468,7 @@ class _TablexState<T> extends State<Tablex<T>> {
     _controller.selectionMode = widget._selectionMode;
     _controller.addListener(_onControllerChanged);
     _horizontalScroll.addListener(_syncHeaderScroll);
+    _verticalScroll.addListener(_syncFrozenScrolls);
 
     if (widget._initialSelection != null) {
       _controller.setSelection(widget._initialSelection!);
@@ -511,10 +517,26 @@ class _TablexState<T> extends State<Tablex<T>> {
     _controller.removeListener(_onControllerChanged);
     if (_ownsController) _controller.dispose();
     _horizontalScroll.removeListener(_syncHeaderScroll);
+    _verticalScroll.removeListener(_syncFrozenScrolls);
     _verticalScroll.dispose();
     _horizontalScroll.dispose();
     _headerHorizontalScroll.dispose();
+    _frozenStartScroll.dispose();
+    _frozenEndScroll.dispose();
     super.dispose();
+  }
+
+  void _syncFrozenScrolls() {
+    if (!_verticalScroll.hasClients) return;
+    final offset = _verticalScroll.position.pixels;
+    if (_frozenStartScroll.hasClients &&
+        _frozenStartScroll.position.pixels != offset) {
+      _frozenStartScroll.jumpTo(offset);
+    }
+    if (_frozenEndScroll.hasClients &&
+        _frozenEndScroll.position.pixels != offset) {
+      _frozenEndScroll.jumpTo(offset);
+    }
   }
 
   void _syncHeaderScroll() {
@@ -781,12 +803,41 @@ class _TablexState<T> extends State<Tablex<T>> {
       return widget._errorBuilder!(context, state.error!);
     }
 
+    // ── Column partitioning ──────────────────────────────────────────────────
+    // Split the ordered column list into three groups. Frozen panels get their
+    // own fixed-width areas; the scrollable group goes into TablexBody as usual.
+    // The controller's runtime frozen overrides take precedence over the static
+    // column definition so users can freeze/unfreeze via the column manager.
+    final frozenStartCols = ordered
+        .where((c) =>
+            _controller.getColumnFrozen(c.fieldKey, c.frozen) ==
+            TablexColumnFrozen.start)
+        .toList();
+    final frozenEndCols = ordered
+        .where((c) =>
+            _controller.getColumnFrozen(c.fieldKey, c.frozen) ==
+            TablexColumnFrozen.end)
+        .toList();
+    final scrollableCols = ordered
+        .where((c) =>
+            _controller.getColumnFrozen(c.fieldKey, c.frozen) ==
+            TablexColumnFrozen.none)
+        .toList();
+    final hasFrozenStart = frozenStartCols
+        .any((c) => !c.hide && !hiddenFields.contains(c.fieldKey));
+    final hasFrozenEnd =
+        frozenEndCols.any((c) => !c.hide && !hiddenFields.contains(c.fieldKey));
+    final hasFrozen = hasFrozenStart || hasFrozenEnd;
+
+    // Columns handed to the scrollable body/header (excludes frozen cols).
+    final bodyCols = hasFrozen ? scrollableCols : ordered;
+
     // ── Body ─────────────────────────────────────────────────────────────────
     // Built separately so loadingBuilder only wraps the scrollable rows, never
     // the header or footer (which don't need to be skeletonized).
     final tableBody = TablexBody<T>(
       controller: _controller,
-      columns: ordered,
+      columns: bodyCols,
       density: widget._density,
       theme: resolvedTheme,
       selectionMode: widget._selectionMode,
@@ -822,65 +873,131 @@ class _TablexState<T> extends State<Tablex<T>> {
       resolvedBody = tableBody;
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    final showSelectionBar =
+        _controller.selectedRows.isNotEmpty && widget._showSelectionSummary;
+
+    Widget buildSelectionSummary() => widget._selectionSummaryBuilder != null
+        ? widget._selectionSummaryBuilder!(
+            context,
+            _controller.selectedRows,
+            _controller.clearSelection,
+          )
+        : _SelectionSummaryHeader<T>(
+            selectedCount: _controller.selectedRows.length,
+            selectedItems: _controller.selectedRows,
+            density: widget._density,
+            theme: resolvedTheme,
+            onClear: _controller.clearSelection,
+            actions: widget._selectionActions,
+            includeClearAction: widget._includeClearSelectionAction,
+          );
+
+    Widget buildScrollableHeader() => SingleChildScrollView(
+          controller: _headerHorizontalScroll,
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(),
+          child: TablexHeaderRow<T>(
+            columns: bodyCols,
+            columnWidths: columnWidths,
+            hiddenFields: hiddenFields,
+            sort: state.query.sort,
+            density: widget._density,
+            theme: resolvedTheme,
+            onSort: _onSort,
+            onResizeUpdate:
+                widget._enableColumnResize ? _controller.setColumnWidth : null,
+            onResizeEnd: widget._enableColumnResize ? (_, __) {} : null,
+            onReorder: _onReorder,
+            selectionMode: widget._selectionMode,
+            selectedCount: _controller.selectedRows.length,
+            totalCount: _controller.rowCount,
+            onSelectAll: () =>
+                _controller.selectAll(_controller.getAllRowData()),
+            onDeselectAll: _controller.clearSelection,
+          ),
+        );
+
+    TablexFrozenPanel<T> buildFrozenPanel(
+      List<TablexColumnBase<T>> cols,
+      ScrollController scroll, {
+      required bool shadowOnTrailingEdge,
+    }) =>
+        TablexFrozenPanel<T>(
+          columns: cols,
+          controller: _controller,
+          columnWidths: columnWidths,
+          hiddenFields: hiddenFields,
+          sort: state.query.sort,
+          density: widget._density,
+          theme: resolvedTheme,
+          verticalController: scroll,
+          mainVerticalController: _verticalScroll,
+          shadowOnTrailingEdge: shadowOnTrailingEdge,
+          showHeader: widget._showHeader && !showSelectionBar,
+          onSort: _onSort,
+          onResizeUpdate:
+              widget._enableColumnResize ? _controller.setColumnWidth : null,
+          selectionMode: widget._selectionMode,
+          onRowTap: widget._onRowTap,
+          onRowDoubleTap: widget._onRowDoubleTap,
+          onSelectionChanged: widget._onSelectionChanged,
+        );
+
     // ── Full table layout ────────────────────────────────────────────────────
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Column group header (never skeletonized)
+        // Column group header — shown for the scrollable columns only when
+        // frozen columns are present (spanning all three panels is not
+        // supported and would misalign with the frozen panel widths).
         if (widget._columnGroups != null)
           TablexColumnGroupHeader<T>(
             groups: widget._columnGroups!,
-            columns: ordered,
+            columns: bodyCols,
             columnWidths: columnWidths,
             hiddenFields: hiddenFields,
             density: widget._density,
             theme: resolvedTheme,
           ),
-        // Header row or selection summary bar (never skeletonized)
-        if (widget._showHeader)
-          _controller.selectedRows.isNotEmpty && widget._showSelectionSummary
-              ? widget._selectionSummaryBuilder != null
-                  ? widget._selectionSummaryBuilder!(
-                      context,
-                      _controller.selectedRows,
-                      _controller.clearSelection,
-                    )
-                  : _SelectionSummaryHeader<T>(
-                      selectedCount: _controller.selectedRows.length,
-                      selectedItems: _controller.selectedRows,
-                      density: widget._density,
-                      theme: resolvedTheme,
-                      onClear: _controller.clearSelection,
-                      actions: widget._selectionActions,
-                      includeClearAction: widget._includeClearSelectionAction,
-                    )
-              : SingleChildScrollView(
-                  controller: _headerHorizontalScroll,
-                  scrollDirection: Axis.horizontal,
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: TablexHeaderRow<T>(
-                    columns: ordered,
-                    columnWidths: columnWidths,
-                    hiddenFields: hiddenFields,
-                    sort: state.query.sort,
-                    density: widget._density,
-                    theme: resolvedTheme,
-                    onSort: _onSort,
-                    onResizeUpdate: widget._enableColumnResize
-                        ? _controller.setColumnWidth
-                        : null,
-                    onResizeEnd: widget._enableColumnResize ? (_, __) {} : null,
-                    onReorder: _onReorder,
-                    selectionMode: widget._selectionMode,
-                    selectedCount: _controller.selectedRows.length,
-                    totalCount: _controller.rowCount,
-                    onSelectAll: () =>
-                        _controller.selectAll(_controller.getAllRowData()),
-                    onDeselectAll: _controller.clearSelection,
+        // Selection summary bar always spans the full width.
+        if (widget._showHeader && showSelectionBar) buildSelectionSummary(),
+        // Header + body area — three-panel when frozen columns are active.
+        if (hasFrozen)
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (hasFrozenStart)
+                  buildFrozenPanel(
+                    frozenStartCols,
+                    _frozenStartScroll,
+                    shadowOnTrailingEdge: true,
+                  ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (widget._showHeader && !showSelectionBar)
+                        buildScrollableHeader(),
+                      Expanded(child: resolvedBody),
+                    ],
                   ),
                 ),
-        // Scrollable body (potentially wrapped by loadingBuilder)
-        Expanded(child: resolvedBody),
+                if (hasFrozenEnd)
+                  buildFrozenPanel(
+                    frozenEndCols,
+                    _frozenEndScroll,
+                    shadowOnTrailingEdge: false,
+                  ),
+              ],
+            ),
+          )
+        else ...[
+          // Original flat layout (no frozen columns).
+          if (widget._showHeader && !showSelectionBar) buildScrollableHeader(),
+          Expanded(child: resolvedBody),
+        ],
         // Bottom loading indicator for ongoing infinite-scroll fetches.
         if (widget._variant == _TablexVariant.infinite &&
             state.isInitialized &&
