@@ -204,17 +204,17 @@ class TablexThemeData {
     return TablexThemeData(
       backgroundColor: backgroundColor ?? colorScheme.surface,
       headerBackgroundColor:
-          headerBackgroundColor ?? colorScheme.surfaceContainerLow,
+          headerBackgroundColor ?? colorScheme.surfaceContainerLowest,
       rowEvenColor: rowEvenColor ?? colorScheme.surface,
       rowOddColor: rowOddColor ?? colorScheme.surfaceContainerLowest,
       rowHoverColor: rowHoverColor ?? colorScheme.surfaceContainerHigh,
       rowSelectedColor:
           rowSelectedColor ?? colorScheme.primaryContainer.withAlpha(120),
-      borderColor: borderColor ?? colorScheme.outlineVariant,
+      borderColor: borderColor ?? colorScheme.surfaceContainerHigh,
       headerTextStyle: headerTextStyle ??
           textTheme.labelMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
+            color: colorScheme.onSurfaceVariant,
           ),
       cellTextStyle: cellTextStyle ??
           textTheme.bodySmall?.copyWith(color: colorScheme.onSurface),
