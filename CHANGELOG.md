@@ -1,3 +1,16 @@
+## 0.3.1
+
+### Bug fixes
+
+* **`file_picker` constraint widened** — changed from `^11.0.0` to `">=10.0.0 <12.0.0"` to allow both v10 and v11, unblocking projects that haven't migrated to v11 yet.
+
+### Internal
+
+* Refactored `tablex_widget.dart`: public API types (`TablexLoadingBuilder`, `TablexErrorBuilder`, `TablexSelectionSummaryBuilder`, `TablexSelectionAction`) moved to `tablex_types.dart`; scroll sync, infinite-scroll, and sort logic extracted to `_tablex_state_mixin.dart` via `part of`.
+* Refactored `controller.dart`: CSV and Excel export/import logic (4 public methods + helpers) moved to `_controller_export.dart` via `part of`, keeping the reactive `ChangeNotifier` core separate from serialization.
+
+---
+
 ## 0.3.0
 
 ### New features
