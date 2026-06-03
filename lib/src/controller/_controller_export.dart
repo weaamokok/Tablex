@@ -1,10 +1,10 @@
 part of 'controller.dart';
 
-// CSV / Excel export and import logic, extracted from TablexController to keep
-// the reactive ChangeNotifier core separate from serialization concerns.
+// CSV export and import logic, extracted from TablexController to keep the
+// reactive ChangeNotifier core separate from serialization concerns.
 // Uses `part of` so all `_private` members of TablexController are accessible.
 //
-// Pure helpers are top-level functions (no `this`); the four public API methods
+// Pure helpers are top-level functions (no `this`); the public API methods
 // live in an extension so they appear as first-class controller methods.
 
 // ---------------------------------------------------------------------------

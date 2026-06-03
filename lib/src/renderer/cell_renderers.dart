@@ -453,16 +453,18 @@ class _CurrencyCell<TRow> extends StatelessWidget {
     final formatted =
         intl.NumberFormat.currency(symbol: symbol, decimalDigits: decimalDigits)
             .format(value);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Text(
-        formatted,
-        textAlign: TextAlign.end,
-        style: TextStyle(
-          color: color,
-          fontFeatures: const [FontFeature.tabularFigures()],
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Text(
+          formatted,
+          textAlign: TextAlign.end,
+          style: TextStyle(
+            color: color,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+          overflow: TextOverflow.ellipsis,
         ),
-        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -484,18 +486,20 @@ class _LinkCell<TRow> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = color ?? Theme.of(context).colorScheme.primary;
-    return GestureDetector(
-      onTap: () => onTap(row),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Text(
-          value,
-          style: TextStyle(
-            color: c,
-            decoration: TextDecoration.underline,
-            decorationColor: c,
+    return Center(
+      child: GestureDetector(
+        onTap: () => onTap(row),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            value,
+            style: TextStyle(
+              color: c,
+              decoration: TextDecoration.underline,
+              decorationColor: c,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
-          overflow: TextOverflow.ellipsis,
         ),
       ),
     );

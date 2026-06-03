@@ -6,6 +6,7 @@ import '../../renderer/cell_context.dart';
 import '../../renderer/cell_renderers.dart';
 import '../../theme/grid_theme_data.dart';
 
+
 class TablexCellWidget<TRow> extends StatelessWidget {
   const TablexCellWidget({
     super.key,
@@ -59,13 +60,8 @@ class TablexCellWidget<TRow> extends StatelessWidget {
         content = built;
       } else if (rawValue == null && column.showEmptyAsDash) {
         content = _textCell(column.effectivePlaceholder, context);
-      } else if (column.type == TablexColumnType.id ||
-          column.type == TablexColumnType.identifier) {
-        content = TablexRenderers.identifier<TRow>()(
-            row.data, rawValue?.toString() ?? '', ctx);
       } else {
-        final formatted = column.formatValueRaw(rawValue);
-        content = _textCell(formatted ?? rawValue?.toString() ?? '', context);
+        content = _buildDefaultForType(context, rawValue, ctx);
       }
     }
 
@@ -84,22 +80,69 @@ class TablexCellWidget<TRow> extends StatelessWidget {
     );
   }
 
-  Widget _textCell(String text, BuildContext context) {
+  /// Dispatches to the built-in renderer that matches [column.type].
+  /// Falls back to formatted text for types that have no default renderer
+  /// (e.g. [TablexColumnType.select], [TablexColumnType.action]) or when
+  /// the raw value doesn't match the expected Dart type (e.g. type is
+  /// [TablexColumnType.date] but the cell value is a String).
+  Widget _buildDefaultForType(
+      BuildContext context, dynamic rawValue, TablexCellContext ctx) {
+    final type = column.type;
+
+    if (type == TablexColumnType.id || type == TablexColumnType.identifier) {
+      return TablexRenderers.identifier<TRow>()(
+          row.data, rawValue?.toString() ?? '', ctx);
+    }
+
+    if (type == TablexColumnType.boolean && rawValue is bool) {
+      return TablexRenderers.boolean<TRow>()(row.data, rawValue, ctx);
+    }
+
+    if (type == TablexColumnType.date && rawValue is DateTime) {
+      return TablexRenderers.date<TRow>()(row.data, rawValue, ctx);
+    }
+
+    if (type == TablexColumnType.dateTime && rawValue is DateTime) {
+      return TablexRenderers.dateTime<TRow>()(row.data, rawValue, ctx);
+    }
+
+    if (type == TablexColumnType.currency && rawValue is num) {
+      return TablexRenderers.currency<TRow>()(row.data, rawValue, ctx);
+    }
+
+    final formatted =
+        column.formatValueRaw(rawValue) ?? rawValue?.toString() ?? '';
+
+    // Numbers default to end (right in LTR) alignment.
+    if (type == TablexColumnType.number) {
+      return _textCell(formatted, context, endAlign: true);
+    }
+
+    return _textCell(formatted, context);
+  }
+
+  Widget _textCell(String text, BuildContext context, {bool endAlign = false}) {
     final direction = Directionality.of(context);
+    final isLtr = direction == TextDirection.ltr;
     TextAlign align;
-    if (column.textAlign == TextAlign.start) {
-      align = direction == TextDirection.ltr ? TextAlign.left : TextAlign.right;
+    Alignment boxAlign;
+    if (endAlign) {
+      align = isLtr ? TextAlign.right : TextAlign.left;
+      boxAlign = isLtr ? Alignment.centerRight : Alignment.centerLeft;
+    } else if (column.textAlign == TextAlign.start) {
+      align = isLtr ? TextAlign.left : TextAlign.right;
+      boxAlign = isLtr ? Alignment.centerLeft : Alignment.centerRight;
     } else if (column.textAlign == TextAlign.end) {
-      align = direction == TextDirection.ltr ? TextAlign.right : TextAlign.left;
+      align = isLtr ? TextAlign.right : TextAlign.left;
+      boxAlign = isLtr ? Alignment.centerRight : Alignment.centerLeft;
     } else {
       align = column.textAlign;
+      boxAlign = isLtr ? Alignment.centerLeft : Alignment.centerRight;
     }
     return Padding(
       padding: theme.cellPadding,
       child: Align(
-        alignment: direction == TextDirection.rtl
-            ? Alignment.centerRight
-            : Alignment.centerLeft,
+        alignment: boxAlign,
         child: Text(
           text,
           overflow: TextOverflow.ellipsis,

@@ -16,6 +16,10 @@ import 'page_size_selector.dart';
 ///
 /// Use the provided callbacks to drive navigation; do not call
 /// [TablexController] methods directly as the footer owns the page cache.
+///
+/// In cursor mode [isCursorMode] is `true`, [totalRows] / [totalPages] may
+/// be `0` (unknown), and [goToPage] is a no-op for unvisited pages.
+/// Use [hasNextPage] instead of `page < totalPages` to gate the next button.
 class TablexPaginationInfo {
   const TablexPaginationInfo({
     required this.page,
@@ -26,21 +30,26 @@ class TablexPaginationInfo {
     required this.previousPage,
     required this.nextPage,
     required this.setPageSize,
+    this.isCursorMode = false,
+    this.hasNextPage,
   });
 
   /// Current 1-based page number.
   final int page;
 
   /// Total number of pages given the current [pageSize] and [totalRows].
+  /// May be `0` in cursor mode when the server does not return a total count.
   final int totalPages;
 
   /// Total number of rows across all pages.
+  /// May be `0` in cursor mode when the server does not return a total count.
   final int totalRows;
 
   /// Current rows-per-page setting.
   final int pageSize;
 
   /// Navigate to an arbitrary page. Clamped to [1..totalPages].
+  /// No-op for unvisited pages in cursor mode.
   final void Function(int page) goToPage;
 
   /// Navigate to the previous page. No-op on page 1.
@@ -51,6 +60,14 @@ class TablexPaginationInfo {
 
   /// Change the page size. Resets to page 1.
   final void Function(int size) setPageSize;
+
+  /// `true` when the grid is using cursor-based (opaque-token) pagination.
+  final bool isCursorMode;
+
+  /// Whether a next page is available.
+  /// When `null`, inferred as [page] < [totalPages] (offset mode).
+  /// Always set explicitly in cursor mode.
+  final bool? hasNextPage;
 }
 
 /// Builder that fully replaces the default pagination footer.
@@ -102,6 +119,7 @@ class TablexPaginationFooter<T> extends StatefulWidget {
 
   /// When `true`, the current page indicator becomes an editable text field
   /// so users can jump directly to any page number.
+  /// Ignored in cursor mode — arbitrary jumps are not supported.
   final bool enablePageJump;
 
   /// Fully replaces the built-in footer UI. Receives a [TablexPaginationInfo]
@@ -113,7 +131,14 @@ class TablexPaginationFooter<T> extends StatefulWidget {
       _TablexPaginationFooterState<T>();
 }
 
+// ============================================================================
+// State
+// ============================================================================
+
 class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
+  // ---------------------------------------------------------------------------
+  // Offset-mode state
+  // ---------------------------------------------------------------------------
   int _totalRows = 0;
   int _totalPages = 1;
 
@@ -124,6 +149,41 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
   final List<int> _evictionQueue = [];
 
   TablexQuery? _lastQuery;
+
+  // ---------------------------------------------------------------------------
+  // Cursor-mode state
+  // ---------------------------------------------------------------------------
+
+  /// Set to `true` on the first result that has a non-null [nextCursor].
+  /// Never reset to false — once cursor mode is detected it stays for the
+  /// session (sort/filter resets restart from page 1 with a null cursor).
+  bool _cursorMode = false;
+
+  /// Cursor history. Index 0 is always `null` (first page, no cursor needed).
+  /// Index N holds the cursor that fetches page N+1.
+  ///
+  /// ```
+  /// index: 0     1       2       3
+  ///        null  'c_1'   'c_2'   'c_3'   ...
+  ///        ↑ page 1  ↑ page 2  ↑ page 3  ↑ page 4
+  /// ```
+  final List<String?> _cursorHistory = [null];
+
+  /// 1-based current page position within [_cursorHistory].
+  int _cursorPage = 1;
+
+  /// `false` after a fetch returns `nextCursor == null` (reached the end).
+  bool _cursorHasMore = true;
+
+  /// Cache keyed by cursor string (empty string = first page / null cursor).
+  final Map<String, _CachedPage<T>> _cursorCache = {};
+
+  /// In-flight cursor fetches — prevents duplicate concurrent requests.
+  final Map<String, Future<void>> _cursorInFlight = {};
+
+  // ---------------------------------------------------------------------------
+  // Lifecycle
+  // ---------------------------------------------------------------------------
 
   @override
   void initState() {
@@ -141,12 +201,12 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
   }
 
   // ---------------------------------------------------------------------------
-  // Fetch logic
+  // Controller listeners
   // ---------------------------------------------------------------------------
 
   void _onRefreshSignal() {
     _invalidateCache();
-    _fetchPage(widget.controller.state.query.page);
+    _fetchPage(1);
   }
 
   void _onControllerChanged() {
@@ -159,18 +219,15 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
       final sortChanged = prev.sort != q.sort;
       final paramsChanged = !_mapsEqual(prev.params, q.params);
 
-      final onlySortOrFilter = sortChanged || paramsChanged;
-      if (onlySortOrFilter) {
-        if (sortChanged && !widget.fetchWithSorting) return;
-        if (paramsChanged && !widget.fetchWithFiltering) return;
-      }
+      if (sortChanged && !widget.fetchWithSorting) return;
+      if (paramsChanged && !widget.fetchWithFiltering) return;
 
       final cacheInvalid = (sortChanged && widget.fetchWithSorting) ||
           prev.pageSize != q.pageSize ||
           (paramsChanged && widget.fetchWithFiltering);
 
       if (cacheInvalid) _invalidateCache();
-      _fetchPage(q.page);
+      _fetchPage(_cursorMode ? _cursorPage : q.page);
     }
   }
 
@@ -185,11 +242,36 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
   void _invalidateCache() {
     _cache.clear();
     _evictionQueue.clear();
+    _cursorCache.clear();
+    _cursorInFlight.clear();
+    _cursorHistory
+      ..clear()
+      ..add(null);
+    _cursorPage = 1;
+    _cursorHasMore = true;
     widget.controller.clearRows();
     widget.controller.clearSelection();
   }
 
+  // ---------------------------------------------------------------------------
+  // Fetch routing
+  // ---------------------------------------------------------------------------
+
   Future<void> _fetchPage(int page) async {
+    if (_cursorMode) {
+      // In cursor mode, `page` is a 1-based index into _cursorHistory.
+      final idx = (page - 1).clamp(0, _cursorHistory.length - 1);
+      await _fetchByCursor(_cursorHistory[idx], targetPage: page);
+    } else {
+      await _fetchByOffset(page);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Offset-based fetch
+  // ---------------------------------------------------------------------------
+
+  Future<void> _fetchByOffset(int page) async {
     if (!mounted) return;
 
     if (_cache.containsKey(page)) {
@@ -221,6 +303,16 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
       final result = await future;
       if (!mounted) return;
 
+      // Auto-detect cursor mode from the first result.
+      if (!_cursorMode && result.nextCursor != null) {
+        _cursorMode = true;
+        _cache.clear();
+        _evictionQueue.clear();
+        // Hand off to cursor-based fetch using the result we already have.
+        _applyFetchResult(result, cursorKey: '', targetPage: 1);
+        return;
+      }
+
       _totalRows = result.totalRows;
       _totalPages = result.effectiveTotalPages(
         widget.controller.state.query.pageSize,
@@ -237,7 +329,6 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
       }
 
       widget.controller.replaceRows(result.rows, rowBuilder: widget.rowBuilder);
-
       if (result.meta != null) widget.controller.setMeta(result.meta);
       widget.controller.setError(null);
       widget.onFetchComplete?.call(result);
@@ -252,27 +343,151 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
   }
 
   // ---------------------------------------------------------------------------
-  // Navigation helpers exposed to the UI
+  // Cursor-based fetch
+  // ---------------------------------------------------------------------------
+
+  Future<void> _fetchByCursor(String? cursor, {required int targetPage}) async {
+    if (!mounted) return;
+
+    final cacheKey = cursor ?? '';
+
+    if (_cursorCache.containsKey(cacheKey)) {
+      final cached = _cursorCache[cacheKey]!;
+      _totalRows = cached.totalRows;
+      _totalPages = cached.totalPages;
+      _cursorPage = targetPage;
+      widget.controller
+          .replaceRows(cached.items, rowBuilder: widget.rowBuilder);
+      if (mounted) setState(() {});
+      return;
+    }
+
+    if (_cursorInFlight.containsKey(cacheKey)) {
+      await _cursorInFlight[cacheKey];
+      return;
+    }
+
+    widget.controller.setLoading(true);
+    var q = widget.controller.state.query.copyWith(
+      page: targetPage,
+      cursor: cursor,
+      clearCursor: cursor == null,
+    );
+    if (!widget.fetchWithSorting) q = q.copyWith(clearSort: true);
+    if (!widget.fetchWithFiltering) q = q.copyWith(params: const {});
+
+    final completer = Future<void>(() async {
+      try {
+        final result = await widget.fetchTask(q);
+        if (!mounted) return;
+        _applyFetchResult(result, cursorKey: cacheKey, targetPage: targetPage);
+      } catch (e) {
+        if (mounted) widget.controller.setError(e);
+      } finally {
+        _cursorInFlight.remove(cacheKey);
+        if (mounted) widget.controller.setLoading(false);
+      }
+    });
+    _cursorInFlight[cacheKey] = completer;
+    await completer;
+  }
+
+  void _applyFetchResult(
+    TablexFetchResult<T> result, {
+    required String cursorKey,
+    required int targetPage,
+  }) {
+    _cursorMode = true;
+    _cursorPage = targetPage;
+
+    if (result.totalRows > 0) {
+      _totalRows = result.totalRows;
+      _totalPages = result.effectiveTotalPages(
+        widget.controller.state.query.pageSize,
+      );
+    }
+
+    // Advance cursor history only when moving forward past known history.
+    final nextCursor = result.nextCursor;
+    _cursorHasMore = nextCursor != null;
+    if (nextCursor != null && _cursorPage >= _cursorHistory.length) {
+      _cursorHistory.add(nextCursor);
+    }
+    // If the API provided a prevCursor and we're missing history entries,
+    // we can trust it for back-navigation.
+    if (result.prevCursor != null && targetPage > 1) {
+      final prevIdx = targetPage - 2;
+      if (prevIdx < _cursorHistory.length) {
+        _cursorHistory[prevIdx] = result.prevCursor;
+      }
+    }
+
+    _cursorCache[cursorKey] = _CachedPage<T>(
+      items: result.rows,
+      totalRows: _totalRows,
+      totalPages: _totalPages,
+    );
+
+    widget.controller.goToPage(_cursorPage);
+    widget.controller.replaceRows(result.rows, rowBuilder: widget.rowBuilder);
+    if (result.meta != null) widget.controller.setMeta(result.meta);
+    widget.controller.setError(null);
+    widget.onFetchComplete?.call(result);
+
+    if (mounted) setState(() {});
+  }
+
+  // ---------------------------------------------------------------------------
+  // Navigation helpers
   // ---------------------------------------------------------------------------
 
   void _goToPage(int page) {
+    if (_cursorMode) {
+      // Can only navigate to pages we already have a cursor for.
+      final clamped = page.clamp(1, _cursorHistory.length);
+      _cursorPage = clamped;
+      widget.controller.goToPage(clamped);
+      _fetchByCursor(_cursorHistory[clamped - 1], targetPage: clamped);
+      return;
+    }
     final clamped = page.clamp(1, _totalPages);
     widget.controller.goToPage(clamped);
-    _fetchPage(clamped);
+    _fetchByOffset(clamped);
   }
 
   void _previousPage() {
+    if (_cursorMode) {
+      if (_cursorPage <= 1) return;
+      final prev = _cursorPage - 1;
+      _cursorPage = prev;
+      widget.controller.goToPage(prev);
+      _fetchByCursor(_cursorHistory[prev - 1], targetPage: prev);
+      return;
+    }
     final current = widget.controller.state.query.page;
     if (current <= 1) return;
     widget.controller.previousPage();
-    _fetchPage(current - 1);
+    _fetchByOffset(current - 1);
   }
 
   void _nextPage() {
+    if (_cursorMode) {
+      // Block if we've reached the end.
+      if (!_cursorHasMore && _cursorPage >= _cursorHistory.length - 1) return;
+      // Block if the cursor for the next page hasn't arrived yet (fetch in
+      // flight). Prevents a rapid double-tap from passing null as the cursor
+      // and accidentally re-fetching page 1.
+      if (_cursorHistory.length <= _cursorPage) return;
+      final next = _cursorPage + 1;
+      _cursorPage = next;
+      widget.controller.goToPage(next);
+      _fetchByCursor(_cursorHistory[next - 1], targetPage: next);
+      return;
+    }
     final current = widget.controller.state.query.page;
     if (current >= _totalPages) return;
     widget.controller.nextPage();
-    _fetchPage(current + 1);
+    _fetchByOffset(current + 1);
   }
 
   // ---------------------------------------------------------------------------
@@ -285,10 +500,12 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
       listenable: widget.controller,
       builder: (context, _) {
         final q = widget.controller.state.query;
-        final page = q.page;
+        final page = _cursorMode ? _cursorPage : q.page;
         final pageSize = q.pageSize;
-        final start = (page - 1) * pageSize + 1;
-        final end = (page * pageSize).clamp(0, _totalRows);
+
+        final hasNext = _cursorMode
+            ? (_cursorHasMore || _cursorHistory.length > _cursorPage)
+            : page < _totalPages;
 
         final info = TablexPaginationInfo(
           page: page,
@@ -299,37 +516,20 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
           previousPage: _previousPage,
           nextPage: _nextPage,
           setPageSize: widget.controller.setPageSize,
+          isCursorMode: _cursorMode,
+          hasNextPage: hasNext,
         );
 
         if (widget.footerBuilder != null) {
           return widget.footerBuilder!(context, info);
         }
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 480;
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              color: widget.theme.paginationBackgroundColor,
-              child: wide
-                  ? _WideFooter(
-                      info: info,
-                      start: start,
-                      end: end,
-                      pageSizeOptions: widget.pageSizeOptions,
-                      theme: widget.theme,
-                      enablePageJump: widget.enablePageJump,
-                    )
-                  : _NarrowFooter(
-                      info: info,
-                      start: start,
-                      end: end,
-                      pageSizeOptions: widget.pageSizeOptions,
-                      theme: widget.theme,
-                      enablePageJump: widget.enablePageJump,
-                    ),
-            );
-          },
+        return _DefaultPaginationFooter(
+          info: info,
+          isLoading: widget.controller.state.isLoading,
+          pageSizeOptions: widget.pageSizeOptions,
+          theme: widget.theme,
+          enablePageJump: widget.enablePageJump && !_cursorMode,
         );
       },
     );
@@ -337,208 +537,323 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
 }
 
 // ============================================================================
-// Wide layout (>= 480 px)
+// Default footer UI
 // ============================================================================
 
-class _WideFooter extends StatelessWidget {
-  const _WideFooter({
+class _DefaultPaginationFooter extends StatelessWidget {
+  const _DefaultPaginationFooter({
     required this.info,
-    required this.start,
-    required this.end,
+    required this.isLoading,
     required this.pageSizeOptions,
     required this.theme,
     required this.enablePageJump,
   });
 
   final TablexPaginationInfo info;
-  final int start;
-  final int end;
+  final bool isLoading;
   final List<int> pageSizeOptions;
   final TablexThemeData theme;
   final bool enablePageJump;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          info.totalRows > 0
-              ? tablexStrings(context).showing(start, end, info.totalRows)
-              : tablexStrings(context).noResults,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const Spacer(),
-        _PageNavigation(
-          info: info,
-          compact: enablePageJump,
-          enablePageJump: enablePageJump,
-        ),
-        const SizedBox(width: 16),
-        TablexPageSizeSelector(
-          currentSize: info.pageSize,
-          options: pageSizeOptions,
-          onChanged: info.setPageSize,
-          theme: theme,
-        ),
-      ],
-    );
-  }
-}
+    final totalPages = info.totalPages <= 0 ? 1 : info.totalPages;
+    final currentPage = info.page.clamp(1, totalPages);
+    final hasPrev = currentPage > 1;
+    final hasNext = info.hasNextPage ?? (currentPage < totalPages);
 
-// ============================================================================
-// Narrow layout (< 480 px) — two rows
-// ============================================================================
-
-class _NarrowFooter extends StatelessWidget {
-  const _NarrowFooter({
-    required this.info,
-    required this.start,
-    required this.end,
-    required this.pageSizeOptions,
-    required this.theme,
-    required this.enablePageJump,
-  });
-
-  final TablexPaginationInfo info;
-  final int start;
-  final int end;
-  final List<int> pageSizeOptions;
-  final TablexThemeData theme;
-  final bool enablePageJump;
-
-  @override
-  Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Navigation row — always compact on narrow screens
-        _PageNavigation(
-          info: info,
-          compact: true,
-          enablePageJump: enablePageJump,
+        // 2 px loading strip — always reserves the height so the layout
+        // doesn't shift when loading starts/stops.
+        SizedBox(
+          height: 2,
+          child: isLoading
+              ? LinearProgressIndicator(
+                  backgroundColor: Colors.transparent,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.6),
+                )
+              : null,
         ),
-        const SizedBox(height: 4),
-        // Info + page size row
-        Row(
-          children: [
-            Text(
-              info.totalRows > 0
-                  ? tablexStrings(context).showing(start, end, info.totalRows)
-                  : tablexStrings(context).noResults,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const Spacer(),
-            TablexPageSizeSelector(
-              currentSize: info.pageSize,
-              options: pageSizeOptions,
-              onChanged: info.setPageSize,
-              theme: theme,
-            ),
-          ],
+        // Nav row
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          color: theme.paginationBackgroundColor,
+          child: Row(
+            children: [
+              // Page navigation — centred so the pill row sits in the middle
+              // regardless of the page-size widget width.
+              Expanded(
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _NavButton(
+                          label: tablexStrings(context).previous,
+                          icon: Icons.chevron_left,
+                          enabled: hasPrev,
+                          onPressed: info.previousPage,
+                        ),
+                        const SizedBox(width: 4),
+                        if (info.isCursorMode)
+                          _CursorPageIndicator(
+                            page: currentPage,
+                            totalPages:
+                                info.totalPages > 0 ? info.totalPages : null,
+                          )
+                        else if (enablePageJump)
+                          _PageJumpIndicator(
+                              info: info, totalPages: totalPages)
+                        else
+                          ..._buildPagePills(
+                              context, currentPage, totalPages, info),
+                        const SizedBox(width: 4),
+                        _NavButton(
+                          label: tablexStrings(context).next,
+                          icon: Icons.chevron_right,
+                          enabled: hasNext,
+                          onPressed: info.nextPage,
+                          iconAfter: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Page-size selector — right-aligned.
+              TablexPageSizeSelector(
+                currentSize: info.pageSize,
+                options: pageSizeOptions,
+                onChanged: info.setPageSize,
+                theme: theme,
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
+
+  List<Widget> _buildPagePills(
+    BuildContext context,
+    int current,
+    int total,
+    TablexPaginationInfo info,
+  ) {
+    if (total <= 1) return [];
+
+    const window = 3;
+    var start = current - (window ~/ 2);
+    if (start < 1) start = 1;
+    var end = start + window - 1;
+    if (end > total) {
+      end = total;
+      start = (end - window + 1).clamp(1, total);
+    }
+
+    final pages = [for (var p = start; p <= end; p++) p];
+    final showLeading = pages.first > 1;
+    final showTrailing = pages.last < total;
+
+    return [
+      if (showLeading) ...[
+        _PagePill(
+            page: 1,
+            isActive: current == 1,
+            onPressed: () => info.goToPage(1)),
+        const _Ellipsis(),
+      ],
+      for (final p in pages)
+        _PagePill(
+            page: p,
+            isActive: p == current,
+            onPressed: () => info.goToPage(p)),
+      if (showTrailing) ...[
+        const _Ellipsis(),
+        _PagePill(
+            page: total,
+            isActive: total == current,
+            onPressed: () => info.goToPage(total)),
+      ],
+    ];
+  }
 }
 
 // ============================================================================
-// Page navigation — shared by wide and narrow
+// Nav button  (← Previous / Next →)
 // ============================================================================
 
-class _PageNavigation extends StatelessWidget {
-  const _PageNavigation({
-    required this.info,
-    required this.compact,
-    required this.enablePageJump,
+class _NavButton extends StatelessWidget {
+  const _NavButton({
+    required this.label,
+    required this.icon,
+    required this.enabled,
+    required this.onPressed,
+    this.iconAfter = false,
   });
 
-  final TablexPaginationInfo info;
-
-  /// `true` = show only prev/[indicator]/next.
-  /// `false` = show full page-number button list.
-  final bool compact;
-  final bool enablePageJump;
+  final String label;
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onPressed;
+  final bool iconAfter;
 
   @override
   Widget build(BuildContext context) {
-    if (info.totalPages <= 1 && !enablePageJump) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
+    final color = enabled ? cs.onSurface : cs.onSurface.withValues(alpha: 0.38);
+    final iconWidget = Icon(icon, size: 16, color: color);
+    final textWidget = Text(
+      label,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+    );
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          iconSize: 18,
-          visualDensity: VisualDensity.compact,
-          onPressed: info.page > 1 ? info.previousPage : null,
-          tooltip: tablexStrings(context).previous,
+    return InkWell(
+      onTap: enabled ? onPressed : null,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: iconAfter
+              ? [textWidget, const SizedBox(width: 4), iconWidget]
+              : [iconWidget, const SizedBox(width: 4), textWidget],
         ),
-        if (compact || enablePageJump)
-          _CompactPageIndicator(info: info, enablePageJump: enablePageJump)
-        else
-          ..._pageButtons(context),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          iconSize: 18,
-          visualDensity: VisualDensity.compact,
-          onPressed: info.page < info.totalPages ? info.nextPage : null,
-          tooltip: tablexStrings(context).next,
-        ),
-      ],
+      ),
     );
   }
-
-  List<Widget> _pageButtons(BuildContext context) {
-    final pages = _pageWindow(info.page, info.totalPages);
-    return [
-      for (final p in pages)
-        p == -1
-            ? const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4),
-                child: Text('…'),
-              )
-            : _PageButton(
-                page: p,
-                isSelected: p == info.page,
-                onTap: () => info.goToPage(p),
-              ),
-    ];
-  }
-
-  List<int> _pageWindow(int current, int total) {
-    if (total <= 7) return List.generate(total, (i) => i + 1);
-    final result = <int>[];
-    result.add(1);
-    if (current - 2 > 2) result.add(-1);
-    for (int p = (current - 2).clamp(2, total - 1);
-        p <= (current + 2).clamp(2, total - 1);
-        p++) {
-      result.add(p);
-    }
-    if (current + 2 < total - 1) result.add(-1);
-    result.add(total);
-    return result;
-  }
 }
 
 // ============================================================================
-// Compact page indicator: "3 of 23" or editable "[ 3 ] of 23"
+// Page pill
 // ============================================================================
 
-class _CompactPageIndicator extends StatefulWidget {
-  const _CompactPageIndicator({
-    required this.info,
-    required this.enablePageJump,
+class _PagePill extends StatelessWidget {
+  const _PagePill({
+    required this.page,
+    required this.isActive,
+    required this.onPressed,
   });
 
-  final TablexPaginationInfo info;
-  final bool enablePageJump;
+  final int page;
+  final bool isActive;
+  final VoidCallback onPressed;
 
   @override
-  State<_CompactPageIndicator> createState() => _CompactPageIndicatorState();
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final label = Text(
+      '$page',
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            color: isActive ? cs.onSurface : null,
+          ),
+    );
+
+    if (isActive) {
+      return Container(
+        constraints: const BoxConstraints(minWidth: 32),
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          border: Border.all(color: cs.outlineVariant),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        alignment: Alignment.center,
+        child: label,
+      );
+    }
+
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 32),
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        alignment: Alignment.center,
+        child: label,
+      ),
+    );
+  }
 }
 
-class _CompactPageIndicatorState extends State<_CompactPageIndicator> {
+// ============================================================================
+// Ellipsis separator
+// ============================================================================
+
+class _Ellipsis extends StatelessWidget {
+  const _Ellipsis();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Icon(
+        Icons.more_horiz,
+        size: 16,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// Cursor mode: "Page N" or "Page N of M" indicator (non-interactive)
+// ============================================================================
+
+class _CursorPageIndicator extends StatelessWidget {
+  const _CursorPageIndicator({required this.page, this.totalPages});
+
+  final int page;
+  final int? totalPages;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final style = Theme.of(context).textTheme.labelSmall;
+    final label = totalPages != null
+        ? 'Page $page of $totalPages'
+        : 'Page $page';
+
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        border: Border.all(color: cs.outlineVariant),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      alignment: Alignment.center,
+      child: Text(label,
+          style: style?.copyWith(fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+// ============================================================================
+// Offset mode + enablePageJump: editable "[ 3 ] of 23" indicator
+// ============================================================================
+
+class _PageJumpIndicator extends StatefulWidget {
+  const _PageJumpIndicator({required this.info, required this.totalPages});
+
+  final TablexPaginationInfo info;
+  final int totalPages;
+
+  @override
+  State<_PageJumpIndicator> createState() => _PageJumpIndicatorState();
+}
+
+class _PageJumpIndicatorState extends State<_PageJumpIndicator> {
   late final TextEditingController _text;
   final FocusNode _focus = FocusNode();
 
@@ -550,7 +865,7 @@ class _CompactPageIndicatorState extends State<_CompactPageIndicator> {
   }
 
   @override
-  void didUpdateWidget(_CompactPageIndicator oldWidget) {
+  void didUpdateWidget(_PageJumpIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_focus.hasFocus && oldWidget.info.page != widget.info.page) {
       _text.text = '${widget.info.page}';
@@ -566,9 +881,7 @@ class _CompactPageIndicatorState extends State<_CompactPageIndicator> {
   }
 
   void _onFocusChange() {
-    if (!_focus.hasFocus) {
-      _text.text = '${widget.info.page}';
-    }
+    if (!_focus.hasFocus) _text.text = '${widget.info.page}';
     if (mounted) setState(() {});
   }
 
@@ -584,33 +897,21 @@ class _CompactPageIndicatorState extends State<_CompactPageIndicator> {
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = Theme.of(context).textTheme.bodySmall;
     final cs = Theme.of(context).colorScheme;
+    final textStyle = Theme.of(context).textTheme.labelSmall;
     final muted = textStyle?.copyWith(color: cs.onSurfaceVariant);
-
-    if (!widget.enablePageJump) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Text(
-          '${widget.info.page} of ${widget.info.totalPages}',
-          style: textStyle,
-        ),
-      );
-    }
-
     final focused = _focus.hasFocus;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text('Page ', style: muted),
         Container(
-          width: 52,
+          width: 48,
           height: 32,
           decoration: BoxDecoration(
             border: Border.all(
               color: focused ? cs.primary : cs.outlineVariant,
-              width: focused ? 1.5 : 1.0,
+              width: focused ? 1.5 : 1,
             ),
             borderRadius: BorderRadius.circular(6),
           ),
@@ -630,53 +931,9 @@ class _CompactPageIndicatorState extends State<_CompactPageIndicator> {
             onSubmitted: _submit,
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(left: 6),
-          child: Text('of ${widget.info.totalPages}', style: muted),
-        ),
+        const SizedBox(width: 6),
+        Text('of ${widget.totalPages}', style: muted),
       ],
-    );
-  }
-}
-
-// ============================================================================
-// Individual page button
-// ============================================================================
-
-class _PageButton extends StatelessWidget {
-  const _PageButton({
-    required this.page,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final int page;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: BoxDecoration(
-          color: isSelected ? cs.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          '$page',
-          style: TextStyle(
-            color: isSelected ? cs.onPrimary : cs.onSurface,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 13,
-          ),
-        ),
-      ),
     );
   }
 }

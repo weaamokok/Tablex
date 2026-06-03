@@ -57,9 +57,15 @@ class TablexColumnFilter {
 
 /// The complete query state sent to [TablexFetchTask] on every fetch.
 ///
-/// [page] and [pageSize] control pagination. [sort] is `null` when no column
-/// is sorted. [filters] lists every active column filter. [params] carries
-/// any additional key/value pairs set via [TablexController.setParam].
+/// [page] and [pageSize] control offset-based pagination. [sort] is `null`
+/// when no column is sorted. [filters] lists every active column filter.
+/// [params] carries any additional key/value pairs set via
+/// [TablexController.setParam].
+///
+/// **Cursor-based pagination:** when [cursor] is non-null the server should
+/// use it instead of [page] to locate the correct position in the dataset.
+/// The footer manages the cursor lifecycle automatically — your [TablexFetchTask]
+/// just reads [cursor] and passes it to your API.
 ///
 /// [TablexQuery] is immutable. Use [copyWith] to produce modified copies,
 /// or drive changes through [TablexController] which handles
@@ -71,9 +77,13 @@ class TablexQuery {
     this.sort,
     this.filters = const [],
     this.params = const {},
+    this.cursor,
   });
 
   /// Current 1-based page number.
+  ///
+  /// In cursor mode this reflects the relative page position (1, 2, 3 …)
+  /// rather than an offset — use [cursor] for the actual server position.
   final int page;
 
   /// Number of rows per page.
@@ -89,6 +99,15 @@ class TablexQuery {
   /// don't map to a specific column.
   final Map<String, dynamic> params;
 
+  /// Opaque cursor token for cursor-based pagination, or `null` for the
+  /// first page / offset-based mode.
+  ///
+  /// Your [TablexFetchTask] receives this value and should pass it verbatim
+  /// to your API (e.g. as `after`, `cursor`, or `next_token`). The footer
+  /// sets and rotates this automatically based on the [TablexFetchResult]
+  /// cursors you return — you never need to set it on the controller.
+  final String? cursor;
+
   TablexQuery copyWith({
     int? page,
     int? pageSize,
@@ -96,6 +115,8 @@ class TablexQuery {
     bool clearSort = false,
     List<TablexColumnFilter>? filters,
     Map<String, dynamic>? params,
+    String? cursor,
+    bool clearCursor = false,
   }) =>
       TablexQuery(
         page: page ?? this.page,
@@ -103,6 +124,7 @@ class TablexQuery {
         sort: clearSort ? null : (sort ?? this.sort),
         filters: filters ?? this.filters,
         params: params ?? this.params,
+        cursor: clearCursor ? null : (cursor ?? this.cursor),
       );
 
   static const _eq = DeepCollectionEquality();
@@ -115,7 +137,8 @@ class TablexQuery {
           pageSize == other.pageSize &&
           sort == other.sort &&
           _eq.equals(filters, other.filters) &&
-          _eq.equals(params, other.params);
+          _eq.equals(params, other.params) &&
+          cursor == other.cursor;
 
   @override
   int get hashCode => Object.hash(
@@ -124,5 +147,6 @@ class TablexQuery {
         sort,
         _eq.hash(filters),
         _eq.hash(params),
+        cursor,
       );
 }

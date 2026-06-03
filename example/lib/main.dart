@@ -107,7 +107,7 @@ class Employee {
   final String name;
   final String email;
   final String department;
-  final double salary;
+  final num salary;
   final DateTime joinDate;
   final EmployeeStatus status;
   final bool isManager;
@@ -287,11 +287,12 @@ List<TablexColumnBase<Employee>> _employeeColumns({
       width: 130,
       valueGetter: (e) => e.department,
     ),
-    TablexColumn<Employee, double>(
+    TablexColumn<Employee, num>(
       fieldKey: 'salary',
       title: 'Salary',
       width: 130,
       textAlign: TextAlign.end,
+      type: TablexColumnType.currency,
       valueGetter: (e) => e.salary,
       cellRenderer: TablexRenderers.currency(symbol: '\$'),
     ),
@@ -299,14 +300,16 @@ List<TablexColumnBase<Employee>> _employeeColumns({
       fieldKey: 'joinDate',
       title: 'Joined',
       width: 120,
+      type: TablexColumnType.date,
       valueGetter: (e) => e.joinDate,
-      cellRenderer: TablexRenderers.date(),
+      // cellRenderer: TablexRenderers.date(),
     ),
     TablexColumn<Employee, EmployeeStatus>(
       fieldKey: 'status',
       title: 'Status',
       width: 120,
       enableSorting: false,
+      type: TablexColumnType.select,
       valueGetter: (e) => e.status,
       cellRenderer: TablexRenderers.statusChip(
         colors: {
@@ -326,11 +329,8 @@ List<TablexColumnBase<Employee>> _employeeColumns({
       title: 'Manager',
       width: 90,
       enableSorting: false,
+      type: TablexColumnType.boolean,
       valueGetter: (e) => e.isManager,
-      cellRenderer: (row, value, context) => Text(
-        value ? 'Yes' : 'No',
-        style: TextStyle(fontWeight: FontWeight.bold),
-      ),
     ),
     if (showActions && onEdit != null && onDelete != null)
       TablexColumn<Employee, dynamic>(
@@ -338,6 +338,7 @@ List<TablexColumnBase<Employee>> _employeeColumns({
         title: '',
         width: 90,
         enableSorting: false,
+        type: TablexColumnType.action,
         valueGetter: (_) => null,
         cellRenderer: TablexRenderers.actions(
           actions: [
@@ -632,13 +633,16 @@ class _InfiniteScrollScreen extends StatelessWidget {
                   width: 140,
                   valueGetter: (e) => e.department,
                 ),
-                TablexColumn<Employee, double>(
+                TablexColumn<Employee, num>(
                   fieldKey: 'salary',
                   title: 'Salary',
                   width: 140,
                   textAlign: TextAlign.end,
                   valueGetter: (e) => e.salary,
-                  cellRenderer: TablexRenderers.currency(symbol: '\$'),
+                  cellRenderer: TablexRenderers.currency(
+                      symbol: '\$',
+                      negativeColor: Colors.redAccent,
+                      positiveColor: Colors.green),
                 ),
                 TablexColumn<Employee, EmployeeStatus>(
                   fieldKey: 'status',

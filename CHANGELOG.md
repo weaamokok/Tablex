@@ -1,13 +1,21 @@
 ## 0.3.1
 
+### New features
+
+* **Cursor-based pagination** — `Tablex.lazyPaged` now supports opaque-cursor APIs alongside the existing offset-based mode. Return `nextCursor` (and optionally `prevCursor`) from your `TablexFetchTask` and the footer switches modes automatically — no constructor flag required. Back-navigation is handled via an internal cursor history so APIs that only return `nextCursor` still support going back. `TablexQuery` gains a `cursor` field; `TablexFetchResult` gains `nextCursor` and `prevCursor`. `TablexPaginationInfo` gains `isCursorMode` and `hasNextPage` for custom `footerBuilder` implementations.
+
+* **Redesigned pagination footer** — the default footer UI has been replaced with a pill-based design: a 2 px loading strip at the top, windowed page pills (`[1] ··· [4][5][6] ··· [20]`), and labelled `← Previous` / `Next →` buttons. In cursor mode the pills are replaced by a `Page N` (or `Page N of M`) indicator. The `enablePageJump` editable-input mode is preserved.
+
+* **Default cell renderers per column type** — columns without a `cellRenderer` now render according to their `type`: `boolean` → read-only checkbox, `date`/`dateTime` → formatted date string, `currency` → sign-aware coloured amount, `number` → end-aligned text, `id`/`identifier` → tap-to-copy monospace (unchanged). Plain text is still the fallback for `text`, `select`, and `action`.
+
 ### Bug fixes
 
-* **`file_picker` constraint widened** — changed from `^11.0.0` to `">=10.0.0 <12.0.0"` to allow both v10 and v11, unblocking projects that haven't migrated to v11 yet.
+* **`file_picker` constraint updated** — bumped to `^11.0.2`.
 
 ### Internal
 
 * Refactored `tablex_widget.dart`: public API types (`TablexLoadingBuilder`, `TablexErrorBuilder`, `TablexSelectionSummaryBuilder`, `TablexSelectionAction`) moved to `tablex_types.dart`; scroll sync, infinite-scroll, and sort logic extracted to `_tablex_state_mixin.dart` via `part of`.
-* Refactored `controller.dart`: CSV and Excel export/import logic (4 public methods + helpers) moved to `_controller_export.dart` via `part of`, keeping the reactive `ChangeNotifier` core separate from serialization.
+* Refactored `controller.dart`: CSV and Excel export/import logic moved to `_controller_export.dart` via `part of`, keeping the reactive `ChangeNotifier` core separate from serialization.
 
 ---
 

@@ -16,8 +16,8 @@ import '_file_save.dart';
 /// ## Out-of-the-box usage
 ///
 /// Place it in the `tableHeader` slot of [TablexConsumer], or directly above
-/// a `Tablex.static` widget. Provide [importRowFactory] to enable import
-/// buttons:
+/// a `Tablex.static` widget. Provide [importRowFactory] to enable the import
+/// button:
 ///
 /// ```dart
 /// TablexToolbar<Employee>(
@@ -42,8 +42,6 @@ import '_file_save.dart';
 ///   columns: _columns,
 ///   // Receive the CSV string and do your own thing (e.g. server upload).
 ///   onExportCsv: (csv) async => await api.uploadCsv(csv),
-///   // Receive the xlsx bytes and save them your way.
-///   onExportExcel: (bytes) async => await FileSaver.saveFile(bytes),
 ///   // Fully custom import — call controller.importFromCsv yourself.
 ///   onImportCsv: () async { ... },
 /// )
@@ -80,18 +78,18 @@ class TablexToolbar<T> extends StatefulWidget {
   /// Defaults to `true`.
   final bool showColumnManager;
 
-  /// Whether to show the export CSV / export Excel buttons.
+  /// Whether to show the export CSV button.
   /// Defaults to `true`.
   final bool showExport;
 
-  /// Providing this enables the built-in import buttons.
+  /// Providing this enables the built-in CSV import button.
   ///
   /// The factory receives a `Map<String, String>` keyed by the header names
   /// in the file and must return a [TablexRow<T>]. The map values are always
   /// plain strings — parse them to their native types inside the factory.
   ///
-  /// Leave `null` to hide import buttons (or supply [onImportCsv] /
-  /// [onImportExcel] for fully custom import flows instead).
+  /// Leave `null` to hide the import button (or supply [onImportCsv] for a
+  /// fully custom import flow instead).
   final TablexRow<T> Function(Map<String, String> row)? importRowFactory;
 
   /// Override the CSV export action.
