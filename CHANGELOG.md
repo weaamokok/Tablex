@@ -1,3 +1,15 @@
+## 0.3.3
+
+### Documentation
+
+* Added iOS, macOS, and Web screenshots to `README.md` and registered them in `pubspec.yaml` under `screenshots:` so they appear in the pub.dev package carousel.
+
+### Example app
+
+* Removed explicit `id("kotlin-android")` from `example/android/app/build.gradle.kts` — the Flutter Gradle Plugin now applies Kotlin internally, eliminating the KGP deprecation warning introduced in recent Flutter versions.
+
+---
+
 ## 0.3.2
 
 ### New features
