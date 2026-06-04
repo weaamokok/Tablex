@@ -5,6 +5,14 @@ homepage: https://github.com/weaamokok/tablex
 repository: https://github.com/weaamokok/tablex
 issue_tracker: https://github.com/weaamokok/tablex/issues
 
+screenshots:
+  - description: 'Tablex on iOS — lazy-paged mode with skeleton loading and column management'
+    path: screenshots/ios.png
+  - description: 'Tablex on macOS — server-paginated grid with toolbar, export, and selection summary'
+    path: screenshots/macos/macos.png
+  - description: 'Tablex on Web — infinite scroll with sliding-window and column groups'
+    path: screenshots/web/web1.png
+
 environment:
   sdk: ">=3.1.0 <4.0.0"
   flutter: ">=3.13.0"

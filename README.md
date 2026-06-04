@@ -4,6 +4,16 @@ A production-grade Flutter data grid with no dependency on any third-party grid 
 
 ---
 
+## Screenshots
+
+|            iOS             | macOS |
+|:--------------------------:|:---:|
+| ![iOS](screenshots/ios.png) | ![macOS](screenshots/macos/macos.png) |
+
+![Web](screenshots/web/web1.png)
+
+---
+
 ## Features
 
 - **Four grid modes** — static in-memory, lazy-paged (server-side), infinite-scroll, and select-picker
