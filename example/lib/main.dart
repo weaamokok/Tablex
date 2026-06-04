@@ -112,6 +112,27 @@ class Employee {
   final EmployeeStatus status;
   final bool isManager;
   final String avatarInitial;
+
+  Employee copyWith({
+    String? name,
+    String? email,
+    String? department,
+    num? salary,
+    DateTime? joinDate,
+    EmployeeStatus? status,
+    bool? isManager,
+  }) =>
+      Employee(
+        id: id,
+        name: name ?? this.name,
+        email: email ?? this.email,
+        department: department ?? this.department,
+        salary: salary ?? this.salary,
+        joinDate: joinDate ?? this.joinDate,
+        status: status ?? this.status,
+        isManager: isManager ?? this.isManager,
+        avatarInitial: avatarInitial,
+      );
 }
 
 class Country {
@@ -900,7 +921,98 @@ class _ImportExportScreen extends StatefulWidget {
 class _ImportExportScreenState extends State<_ImportExportScreen> {
   final _controller = TablexController<Employee>();
   late final List<Employee> _initialRows = _allEmployees.take(50).toList();
-  late final _columns = _employeeColumns();
+
+  // Applies an edited Employee back into the controller, keeping row.data in
+  // sync so that subsequent exports reflect the latest values.
+  void _applyEdit(Employee original, Employee updated) {
+    final index = _controller.getAllRowData().indexOf(original);
+    if (index == -1) return;
+    _controller.updateRow(index, updated, rowBuilder: _employeeRowBuilder);
+  }
+
+  late final _columns = <TablexColumnBase<Employee>>[
+    TablexColumn<Employee, String>(
+      fieldKey: 'id',
+      title: 'Id',
+      width: 50,
+      type: TablexColumnType.id,
+      valueGetter: (e) => e.id.toString(),
+    ),
+    TablexColumn<Employee, String>(
+      fieldKey: 'name',
+      title: 'Name',
+      width: 180,
+      enableEditing: true,
+      valueGetter: (e) => e.name,
+      cellRenderer: TablexRenderers.avatarTwoLine(
+        secondLine: (e) => e.email,
+        avatar: (_) => null,
+      ),
+      onEdit: (e, newName) => _applyEdit(e, e.copyWith(name: newName)),
+    ),
+    TablexColumn<Employee, String>(
+      fieldKey: 'department',
+      title: 'Department',
+      width: 130,
+      enableEditing: true,
+      valueGetter: (e) => e.department,
+      onEdit: (e, newDept) => _applyEdit(e, e.copyWith(department: newDept)),
+      editRenderer: (context, employee, current, onSubmit, onCancel) =>
+          _DepartmentDropdown(
+        current: current,
+        onSubmit: onSubmit,
+        onCancel: onCancel,
+      ),
+    ),
+    TablexColumn<Employee, num>(
+      fieldKey: 'salary',
+      title: 'Salary',
+      width: 130,
+      textAlign: TextAlign.end,
+      type: TablexColumnType.currency,
+      enableEditing: true,
+      valueGetter: (e) => e.salary,
+      cellRenderer: TablexRenderers.currency(symbol: '\$'),
+      onEdit: (e, newSalary) => _applyEdit(e, e.copyWith(salary: newSalary)),
+    ),
+    TablexColumn<Employee, DateTime>(
+      fieldKey: 'joinDate',
+      title: 'Joined',
+      width: 120,
+      type: TablexColumnType.date,
+      valueGetter: (e) => e.joinDate,
+    ),
+    TablexColumn<Employee, EmployeeStatus>(
+      fieldKey: 'status',
+      title: 'Status',
+      width: 120,
+      enableSorting: false,
+      type: TablexColumnType.select,
+      valueGetter: (e) => e.status,
+      cellRenderer: TablexRenderers.statusChip(
+        colors: {
+          EmployeeStatus.active: Colors.green,
+          EmployeeStatus.inactive: Colors.red,
+          EmployeeStatus.onLeave: Colors.orange,
+        },
+        labels: {
+          EmployeeStatus.active: 'Active',
+          EmployeeStatus.inactive: 'Inactive',
+          EmployeeStatus.onLeave: 'On Leave',
+        },
+      ),
+    ),
+    TablexColumn<Employee, bool>(
+      fieldKey: 'isManager',
+      title: 'Manager',
+      width: 90,
+      enableSorting: false,
+      enableEditing: true,
+      type: TablexColumnType.boolean,
+      valueGetter: (e) => e.isManager,
+      onEdit: (e, newValue) => _applyEdit(e, e.copyWith(isManager: newValue)),
+    ),
+  ];
 
   @override
   void initState() {
@@ -939,8 +1051,8 @@ class _ImportExportScreenState extends State<_ImportExportScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${_controller.rowCount} rows — use the toolbar to export or '
-            'import CSV / Excel, or toggle column visibility.',
+            '${_controller.rowCount} rows — double-tap a cell to edit. '
+            'Use the toolbar to export or import CSV / Excel.',
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -965,6 +1077,44 @@ class _ImportExportScreenState extends State<_ImportExportScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Department dropdown — shown as the edit widget for the Department column.
+// ---------------------------------------------------------------------------
+
+class _DepartmentDropdown extends StatelessWidget {
+  const _DepartmentDropdown({
+    required this.current,
+    required this.onSubmit,
+    required this.onCancel,
+  });
+
+  final String current;
+  final void Function(String) onSubmit;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: DropdownButtonFormField<String>(
+        initialValue: _departments.contains(current) ? current : null,
+        isExpanded: true,
+        decoration: const InputDecoration(
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(vertical: 4),
+          border: UnderlineInputBorder(),
+        ),
+        items: _departments
+            .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+            .toList(),
+        onChanged: (v) {
+          if (v != null) onSubmit(v);
+        },
       ),
     );
   }

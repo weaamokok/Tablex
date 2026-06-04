@@ -128,6 +128,7 @@ class TablexThemeData {
     this.checkboxTheme,
     this.paginationBackgroundColor,
     this.borderRadius = const BorderRadius.all(Radius.circular(8)),
+    this.editInputDecoration,
   });
 
   /// Background colour of the data area. Defaults to [ColorScheme.surface].
@@ -194,6 +195,20 @@ class TablexThemeData {
   /// Corner radius of the outer grid border. Defaults to 8 px on all corners.
   final BorderRadius borderRadius;
 
+  /// Decoration applied to the default inline-edit text field.
+  ///
+  /// When `null` the grid uses a compact underline decoration:
+  /// ```dart
+  /// InputDecoration(
+  ///   isDense: true,
+  ///   contentPadding: EdgeInsets.symmetric(vertical: 4),
+  ///   border: UnderlineInputBorder(),
+  /// )
+  /// ```
+  /// Supply this to change the border style, add a hint, or remove the
+  /// underline entirely — without having to write a full [TablexColumn.editRenderer].
+  final InputDecoration? editInputDecoration;
+
   /// Resolves all nullable fields against the Material 3 theme at [context].
   ///
   /// Call this once inside `build()` and pass the result to child widgets so
@@ -229,6 +244,7 @@ class TablexThemeData {
       paginationBackgroundColor:
           paginationBackgroundColor ?? colorScheme.surfaceContainerLow,
       borderRadius: borderRadius,
+      editInputDecoration: editInputDecoration,
     );
   }
 
@@ -252,6 +268,7 @@ class TablexThemeData {
     TablexCheckboxTheme? checkboxTheme,
     Color? paginationBackgroundColor,
     BorderRadius? borderRadius,
+    InputDecoration? editInputDecoration,
   }) {
     return TablexThemeData(
       backgroundColor: backgroundColor ?? this.backgroundColor,
@@ -277,6 +294,7 @@ class TablexThemeData {
       paginationBackgroundColor:
           paginationBackgroundColor ?? this.paginationBackgroundColor,
       borderRadius: borderRadius ?? this.borderRadius,
+      editInputDecoration: editInputDecoration ?? this.editInputDecoration,
     );
   }
 }

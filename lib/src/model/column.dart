@@ -94,6 +94,26 @@ abstract class TablexColumnBase<TRow> {
   /// Formats [rawValue] to a display string, or returns `null` to use the
   /// default `toString()`.
   String? formatValueRaw(dynamic rawValue);
+
+  /// Called by the grid after the user commits an inline edit.
+  ///
+  /// Override in concrete column classes to fire a typed [onEdit] callback.
+  /// The default implementation is a no-op.
+  void handleEdit(TRow row, dynamic newValue) {}
+
+  /// Returns a custom edit widget for this cell, or `null` to fall back to
+  /// the type-appropriate default editor (TextField, numeric keyboard, etc.).
+  ///
+  /// [onSubmit] must be called with the new value to commit the edit.
+  /// [onCancel] must be called to discard it.
+  Widget? buildEditCell(
+    BuildContext context,
+    TRow row,
+    dynamic currentValue,
+    void Function(dynamic) onSubmit,
+    VoidCallback onCancel,
+  ) =>
+      null;
 }
 
 /// A strongly-typed column descriptor.
@@ -122,6 +142,8 @@ class TablexColumn<TRow, TValue> extends TablexColumnBase<TRow> {
     required this.valueGetter,
     this.cellRenderer,
     this.formatter,
+    this.onEdit,
+    this.editRenderer,
     super.width,
     super.minWidth = 100,
     super.frozen = TablexColumnFrozen.none,
@@ -154,6 +176,24 @@ class TablexColumn<TRow, TValue> extends TablexColumnBase<TRow> {
   /// Falls back to `value.toString()` when both are `null`.
   final String Function(TValue value)? formatter;
 
+  /// Called after the user commits an inline edit. The grid has already
+  /// updated the cell display; use this to persist the change to your backend
+  /// or local state. Requires [enableEditing] to be `true`.
+  final void Function(TRow row, TValue newValue)? onEdit;
+
+  /// Custom edit-mode widget. Supply this to replace the default type-based
+  /// editor (TextField, numeric keyboard, etc.) for this column.
+  ///
+  /// Call [onSubmit] with the accepted value, or [onCancel] to discard.
+  /// Requires [enableEditing] to be `true`.
+  final Widget Function(
+    BuildContext context,
+    TRow row,
+    TValue currentValue,
+    void Function(TValue) onSubmit,
+    VoidCallback onCancel,
+  )? editRenderer;
+
   @override
   TValue extractValue(TRow row) => valueGetter(row);
 
@@ -167,6 +207,31 @@ class TablexColumn<TRow, TValue> extends TablexColumnBase<TRow> {
   String? formatValueRaw(dynamic rawValue) {
     if (formatter == null) return null;
     return formatter!(rawValue as TValue);
+  }
+
+  @override
+  void handleEdit(TRow row, dynamic newValue) {
+    if (onEdit != null && newValue is TValue) {
+      onEdit!(row, newValue);
+    }
+  }
+
+  @override
+  Widget? buildEditCell(
+    BuildContext context,
+    TRow row,
+    dynamic currentValue,
+    void Function(dynamic) onSubmit,
+    VoidCallback onCancel,
+  ) {
+    if (editRenderer == null) return null;
+    return editRenderer!(
+      context,
+      row,
+      currentValue is TValue ? currentValue : extractValue(row),
+      (v) => onSubmit(v),
+      onCancel,
+    );
   }
 }
 

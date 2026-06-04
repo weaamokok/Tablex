@@ -625,6 +625,26 @@ class TablexController<T> extends ChangeNotifier {
   // Inline editing
   // ---------------------------------------------------------------------------
 
+  /// Updates a single cell value in place without requiring a full row rebuild.
+  ///
+  /// Called automatically by the grid when the user commits an inline edit.
+  /// You can also call it programmatically for optimistic UI updates — e.g.
+  /// immediately reflect a change while an async save is in flight.
+  void updateCell(int rowIndex, String field, dynamic newValue) {
+    _checkDisposed();
+    if (rowIndex < 0 || rowIndex >= _rowOrder.length) return;
+    final key = _rowOrder[rowIndex];
+    final row = _rowMap[key]!;
+    final updatedCells = Map<String, dynamic>.from(row.cells)..[field] = newValue;
+    _rowMap[key] = TablexRow<T>(
+      data: row.data,
+      cells: updatedCells,
+      key: key,
+      checked: row.checked,
+    );
+    _notify();
+  }
+
   /// The zero-based index of the row in inline-edit mode, or `null`.
   int? get editingRowIndex => _state.editingRowIndex;
 

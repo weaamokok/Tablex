@@ -9,6 +9,9 @@ import '../../theme/grid_theme_data.dart'
 import '../../../i18n/strings.g.dart';
 import 'cell_widget.dart';
 
+typedef _RowNavigateCallback = void Function(
+    String field, dynamic value, TablexEditDirection direction);
+
 const double _kCheckboxWidth = 48.0;
 
 class TablexBody<TRow> extends StatelessWidget {
@@ -102,8 +105,43 @@ class TablexBody<TRow> extends StatelessWidget {
                     controller.toggleRowSelection(row.data);
                     onSelectionChanged?.call(controller.selectedRows);
                   },
-                  onEditConfirm: (field, _) =>
-                      controller.confirmEdit(index, field),
+                  onBeginEdit: (field) => controller.beginEdit(index, field),
+                  onCancelEdit: controller.cancelEdit,
+                  onEditConfirm: (field, newValue) {
+                    _commitEdit(
+                      controller: controller,
+                      visible: visible,
+                      rows: rows,
+                      rowIndex: index,
+                      field: field,
+                      newValue: newValue,
+                    );
+                  },
+                  onNavigate: (field, newValue, direction) {
+                    _commitEdit(
+                      controller: controller,
+                      visible: visible,
+                      rows: rows,
+                      rowIndex: index,
+                      field: field,
+                      newValue: newValue,
+                    );
+                    final newRow = _resolveNavTarget(
+                      controller: controller,
+                      visible: visible,
+                      rowIndex: index,
+                      field: field,
+                      direction: direction,
+                    );
+                    if (newRow != null) {
+                      controller.beginEdit(newRow.$1, newRow.$2);
+                      _scrollToRow(
+                        rowIndex: newRow.$1,
+                        density: density,
+                        scrollController: verticalScrollController,
+                      );
+                    }
+                  },
                 ),
               );
             },
@@ -145,6 +183,9 @@ class _TablexBodyRow<TRow> extends StatefulWidget {
     required this.selectionMode,
     required this.onToggleSelection,
     required this.onEditConfirm,
+    required this.onBeginEdit,
+    required this.onCancelEdit,
+    required this.onNavigate,
     this.onRowTap,
     this.onRowDoubleTap,
   });
@@ -161,6 +202,9 @@ class _TablexBodyRow<TRow> extends StatefulWidget {
   final TablexSelectionMode selectionMode;
   final VoidCallback onToggleSelection;
   final void Function(String field, dynamic value) onEditConfirm;
+  final void Function(String field) onBeginEdit;
+  final VoidCallback onCancelEdit;
+  final _RowNavigateCallback onNavigate;
   final void Function(TRow)? onRowTap;
   final void Function(TRow)? onRowDoubleTap;
 
@@ -206,7 +250,8 @@ class _TablexBodyRowState<TRow> extends State<_TablexBodyRow<TRow>> {
               final w = widget.columnWidths[col.fieldKey] ?? col.width ?? 150.0;
               final isEditing = widget.state.editingRowIndex == index &&
                   widget.state.editingField == col.fieldKey;
-              return TablexCellWidget<TRow>(
+
+              Widget cell = TablexCellWidget<TRow>(
                 key: ValueKey('${row.key}_${col.fieldKey}'),
                 column: col,
                 row: row,
@@ -220,11 +265,130 @@ class _TablexBodyRowState<TRow> extends State<_TablexBodyRow<TRow>> {
                 onEditConfirm: isEditing
                     ? (v) => widget.onEditConfirm(col.fieldKey, v)
                     : null,
+                onEditCancel: isEditing ? widget.onCancelEdit : null,
+                onNavigate: isEditing
+                    ? (v, dir) => widget.onNavigate(col.fieldKey, v, dir)
+                    : null,
               );
+
+              if (col.enableEditing && !isEditing) {
+                if (col.type == TablexColumnType.boolean) {
+                  // Boolean: single tap toggles immediately.
+                  final current = row.cells[col.fieldKey];
+                  cell = GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => widget.onEditConfirm(
+                        col.fieldKey, !(current as bool? ?? false)),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: cell,
+                    ),
+                  );
+                } else {
+                  // All other types: double-tap to enter edit mode.
+                  cell = GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onDoubleTap: () => widget.onBeginEdit(col.fieldKey),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.text,
+                      child: cell,
+                    ),
+                  );
+                }
+              }
+
+              return cell;
             }),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ============================================================================
+// Edit-navigation helpers
+// ============================================================================
+
+/// Commits an in-progress edit: updates the cell, fires the column callback,
+/// and clears edit mode.
+void _commitEdit<TRow>({
+  required TablexController<TRow> controller,
+  required List<TablexColumnBase<TRow>> visible,
+  required List<TablexRow<TRow>> rows,
+  required int rowIndex,
+  required String field,
+  required dynamic newValue,
+}) {
+  controller.updateCell(rowIndex, field, newValue);
+  final col =
+      visible.firstWhere((c) => c.fieldKey == field, orElse: () => visible.first);
+  col.handleEdit(rows[rowIndex].data, newValue);
+  controller.confirmEdit(rowIndex, field);
+}
+
+/// Computes the next (rowIndex, fieldKey) to enter edit mode after a
+/// navigation key, or returns null if navigation goes out of bounds.
+(int, String)? _resolveNavTarget<TRow>({
+  required TablexController<TRow> controller,
+  required List<TablexColumnBase<TRow>> visible,
+  required int rowIndex,
+  required String field,
+  required TablexEditDirection direction,
+}) {
+  // Boolean columns toggle on tap and never enter text-edit mode.
+  final editable = visible
+      .where((c) => c.enableEditing && c.type != TablexColumnType.boolean)
+      .toList();
+  if (editable.isEmpty) return null;
+
+  final colIdx = editable.indexWhere((c) => c.fieldKey == field);
+  final lastCol = editable.length - 1;
+  final lastRow = controller.rowCount - 1;
+
+  return switch (direction) {
+    TablexEditDirection.tabForward => colIdx < lastCol
+        ? (rowIndex, editable[colIdx + 1].fieldKey)
+        : rowIndex < lastRow
+            ? (rowIndex + 1, editable.first.fieldKey)
+            : null,
+    TablexEditDirection.tabBackward => colIdx > 0
+        ? (rowIndex, editable[colIdx - 1].fieldKey)
+        : rowIndex > 0
+            ? (rowIndex - 1, editable.last.fieldKey)
+            : null,
+    TablexEditDirection.arrowDown =>
+      rowIndex < lastRow ? (rowIndex + 1, field) : null,
+    TablexEditDirection.arrowUp =>
+      rowIndex > 0 ? (rowIndex - 1, field) : null,
+  };
+}
+
+/// Scrolls the vertical list so the row at [rowIndex] is fully visible.
+void _scrollToRow({
+  required int rowIndex,
+  required TablexDensity density,
+  required ScrollController scrollController,
+}) {
+  if (!scrollController.hasClients) return;
+  final position = scrollController.position;
+  final rowTop = rowIndex * density.rowHeight;
+  final rowBottom = rowTop + density.rowHeight;
+  final viewTop = position.pixels;
+  final viewBottom = viewTop + position.viewportDimension;
+
+  if (rowTop < viewTop) {
+    scrollController.animateTo(
+      rowTop.clamp(0.0, position.maxScrollExtent),
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOut,
+    );
+  } else if (rowBottom > viewBottom) {
+    scrollController.animateTo(
+      (rowBottom - position.viewportDimension)
+          .clamp(0.0, position.maxScrollExtent),
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOut,
     );
   }
 }

@@ -86,6 +86,25 @@ enum TablexColumnType {
   identifier,
 }
 
+/// The direction of keyboard-driven navigation from an inline-edit cell.
+///
+/// Returned by the grid when the user presses a navigation key while a cell
+/// is in edit mode — use this in a custom [TablexColumn.editRenderer] if you
+/// want to support the same keyboard shortcuts.
+enum TablexEditDirection {
+  /// [Tab] — commit and move to the next editable cell (right, then down).
+  tabForward,
+
+  /// [Shift]+[Tab] — commit and move to the previous editable cell (left, then up).
+  tabBackward,
+
+  /// [↓] Arrow Down — commit and move to the same column in the next row.
+  arrowDown,
+
+  /// [↑] Arrow Up — commit and move to the same column in the previous row.
+  arrowUp,
+}
+
 /// The direction of a column sort.
 enum TablexSortDirection {
   ascending,

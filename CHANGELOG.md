@@ -1,3 +1,48 @@
+## 0.4.0
+
+### New features
+
+* **Inline cell editing** — set `enableEditing: true` on any `TablexColumn` to make its cells editable. Double-tap a cell to enter edit mode; the grid renders a type-aware input widget by default:
+  * `text` / default → auto-focused `TextField` with full text pre-selected.
+  * `number` / `currency` → numeric keyboard, right-aligned text.
+  * `boolean` → single-tap toggles the value immediately (no text input).
+  * Custom → supply `editRenderer` on the column to replace the input with any widget (e.g. a dropdown, date picker, or colour swatch).
+  * Commit with **Enter** or click-outside; cancel with **Escape**.
+
+* **`TablexColumn.onEdit` callback** — fired after the user commits an edit. Receives the original row object and the new typed value. The grid has already updated the cell display optimistically; use this callback to persist to your API or local state.
+
+* **`TablexColumn.editRenderer`** — fully custom edit widget per column. Receives `(BuildContext, TRow, TValue currentValue, onSubmit, onCancel)`. The grid wraps it in a `Focus` node so **Escape** always cancels regardless of the widget used.
+
+* **`TablexController.updateCell(rowIndex, field, newValue)`** — updates a single cell value in place without requiring a full `rowBuilder`. Available for programmatic optimistic updates outside of inline editing.
+
+* **`TablexThemeData.editInputDecoration`** — overrides the `InputDecoration` of the default text-field editor globally for a grid, without writing a per-column `editRenderer`.
+
+* **Keyboard navigation in edit mode** — while a cell is in edit mode, navigation keys move focus to the next cell without leaving the keyboard:
+  * **Tab** — commit and move to the next editable column; wraps to the first editable column of the next row.
+  * **Shift+Tab** — commit and move to the previous editable column; wraps to the last editable column of the previous row.
+  * **↓ Arrow Down** — commit and move to the same column in the next row.
+  * **↑ Arrow Up** — commit and move to the same column in the previous row.
+  * Arrow navigation scrolls the list automatically to keep the target cell visible.
+  * `TablexEditDirection` enum is exported for custom `editRenderer` widgets that want to implement the same shortcuts.
+
+### API additions
+
+| Symbol | Kind | Notes |
+|---|---|---|
+| `TablexColumn.onEdit` | callback | Typed `(TRow, TValue)` edit callback |
+| `TablexColumn.editRenderer` | builder | Fully custom edit widget |
+| `TablexColumnBase.handleEdit()` | method | Override to dispatch typed `onEdit` |
+| `TablexColumnBase.buildEditCell()` | method | Override to supply custom edit UI |
+| `TablexController.updateCell()` | method | Single-cell in-place update |
+| `TablexThemeData.editInputDecoration` | field | Overrides default edit-field decoration |
+| `TablexEditDirection` | enum | Tab / Shift+Tab / ↓ / ↑ navigation directions |
+
+### Example app
+
+* The **I/O tab** is now fully wired for inline editing: `Name` (text field), `Salary` (numeric field), `Department` (dropdown via `editRenderer`), and `Manager` (boolean toggle). Edits propagate back through `updateRow` so CSV/Excel exports reflect the latest values.
+
+---
+
 ## 0.3.3
 
 ### Documentation
