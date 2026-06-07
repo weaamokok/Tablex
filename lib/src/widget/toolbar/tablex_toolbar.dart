@@ -56,6 +56,7 @@ class TablexToolbar<T> extends StatefulWidget {
     this.importRowFactory,
     this.onExportCsv,
     this.onExportExcel,
+    this.onExportPdf,
     this.onImportCsv,
     this.onImportExcel,
     this.leading,
@@ -64,6 +65,7 @@ class TablexToolbar<T> extends StatefulWidget {
     this.importExcelIcon,
     this.exportCsvIcon,
     this.exportExcelIcon,
+    this.exportPdfIcon,
     this.columnManagerIcon,
     this.columnTileBuilder,
   });
@@ -105,6 +107,12 @@ class TablexToolbar<T> extends StatefulWidget {
   /// a native save-file dialog (desktop) or triggers a browser download (web).
   final Future<void> Function(Uint8List bytes)? onExportExcel;
 
+  /// Override the PDF export action.
+  ///
+  /// Receives the raw `.pdf` bytes. When `null` the built-in behaviour opens
+  /// a native save-file dialog (desktop) or triggers a browser download (web).
+  final Future<void> Function(Uint8List bytes)? onExportPdf;
+
   /// Fully replace the CSV import flow.
   ///
   /// When provided, this is called instead of the built-in file-picker flow.
@@ -141,6 +149,10 @@ class TablexToolbar<T> extends StatefulWidget {
   /// Icon widget for the "Export Excel" button.
   /// Defaults to `Icon(Icons.table_chart_outlined, size: 18)`.
   final Widget? exportExcelIcon;
+
+  /// Icon widget for the "Export PDF" button.
+  /// Defaults to `Icon(Icons.picture_as_pdf_outlined, size: 18)`.
+  final Widget? exportPdfIcon;
 
   /// Icon widget for the column-visibility manager button.
   /// Defaults to `Icon(Icons.view_column_outlined)`.
@@ -195,17 +207,24 @@ class _TablexToolbarState<T> extends State<TablexToolbar<T>> {
   // ---------------------------------------------------------------------------
   // Export
 
+  bool get _hasSelection =>
+      widget.controller.selectedRows.isNotEmpty;
+
   Future<void> _exportCsv() async {
-    final csv = widget.controller.exportToCsv(widget.columns);
+    final csv = _hasSelection
+        ? widget.controller.exportSelectedToCsv(widget.columns)
+        : widget.controller.exportToCsv(widget.columns);
     if (widget.onExportCsv != null) {
       await widget.onExportCsv!(csv);
       return;
     }
     if (!mounted) return;
+    final n = widget.controller.selectedRows.length;
+    final title = _hasSelection ? 'Export CSV ($n selected)' : 'Export CSV';
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Export CSV'),
+        title: Text(title),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560, maxHeight: 400),
           child: SingleChildScrollView(
@@ -233,12 +252,25 @@ class _TablexToolbarState<T> extends State<TablexToolbar<T>> {
   }
 
   Future<void> _exportExcel() async {
-    final bytes = widget.controller.exportToExcel(widget.columns);
+    final bytes = _hasSelection
+        ? widget.controller.exportSelectedToExcel(widget.columns)
+        : widget.controller.exportToExcel(widget.columns);
     if (widget.onExportExcel != null) {
       await widget.onExportExcel!(bytes);
       return;
     }
     await saveFile('export.xlsx', bytes);
+  }
+
+  Future<void> _exportPdf() async {
+    final bytes = _hasSelection
+        ? await widget.controller.exportSelectedToPdf(widget.columns)
+        : await widget.controller.exportToPdf(widget.columns);
+    if (widget.onExportPdf != null) {
+      await widget.onExportPdf!(bytes);
+      return;
+    }
+    await saveFile('export.pdf', bytes);
   }
 
   // ---------------------------------------------------------------------------
@@ -300,20 +332,47 @@ class _TablexToolbarState<T> extends State<TablexToolbar<T>> {
                 ),
               if ((_hasImportCsv || _hasImportExcel) && widget.showExport)
                 const _ToolbarDivider(),
-              if (widget.showExport) ...[
-                _ToolbarIconButton(
-                  icon: widget.exportCsvIcon ??
-                      const Icon(Icons.download_outlined, size: 18),
-                  tooltip: 'Export CSV',
-                  onPressed: _busy ? null : () => _run(_exportCsv),
+              if (widget.showExport)
+                ListenableBuilder(
+                  listenable: widget.controller,
+                  builder: (_, __) {
+                    final n = widget.controller.selectedRows.length;
+                    final hasSel = n > 0;
+                    final csvTip = hasSel
+                        ? 'Export CSV ($n selected)'
+                        : 'Export CSV (all rows)';
+                    final xlTip = hasSel
+                        ? 'Export Excel ($n selected)'
+                        : 'Export Excel (all rows)';
+                    final pdfTip = hasSel
+                        ? 'Export PDF ($n selected)'
+                        : 'Export PDF (all rows)';
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _ToolbarIconButton(
+                          icon: widget.exportCsvIcon ??
+                              const Icon(Icons.download_outlined, size: 18),
+                          tooltip: csvTip,
+                          onPressed: _busy ? null : () => _run(_exportCsv),
+                        ),
+                        _ToolbarIconButton(
+                          icon: widget.exportExcelIcon ??
+                              const Icon(Icons.table_chart_outlined, size: 18),
+                          tooltip: xlTip,
+                          onPressed: _busy ? null : () => _run(_exportExcel),
+                        ),
+                        _ToolbarIconButton(
+                          icon: widget.exportPdfIcon ??
+                              const Icon(Icons.picture_as_pdf_outlined,
+                                  size: 18),
+                          tooltip: pdfTip,
+                          onPressed: _busy ? null : () => _run(_exportPdf),
+                        ),
+                      ],
+                    );
+                  },
                 ),
-                _ToolbarIconButton(
-                  icon: widget.exportExcelIcon ??
-                      const Icon(Icons.table_chart_outlined, size: 18),
-                  tooltip: 'Export Excel',
-                  onPressed: _busy ? null : () => _run(_exportExcel),
-                ),
-              ],
               if (widget.showColumnManager) ...[
                 if (widget.showExport || _hasImportCsv || _hasImportExcel)
                   const _ToolbarDivider(),

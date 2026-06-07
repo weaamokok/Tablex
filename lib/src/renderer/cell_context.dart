@@ -17,6 +17,7 @@ class TablexCellContext {
     required this.columnField,
     required this.columnTitle,
     required this.columnType,
+    required this.enableTextSelection,
   });
 
   /// Zero-based index of this row in the current page / visible set.
@@ -45,6 +46,13 @@ class TablexCellContext {
 
   /// The [TablexColumnBase.type] of the owning column.
   final TablexColumnType columnType;
+
+  /// Whether cell text should be rendered as selectable (web default: `true`).
+  ///
+  /// Driven by [TablexThemeData.enableTextSelection]. Renderers that render
+  /// plain text should switch from [Text] to [SelectableText] when this is
+  /// `true`.
+  final bool enableTextSelection;
 }
 
 /// Metadata passed to a column's [TablexColumnBase.footerRenderer] callback.

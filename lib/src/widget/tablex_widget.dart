@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../controller/controller.dart';
 import '../model/column.dart';
 import '../model/enums.dart';
@@ -16,6 +17,7 @@ import 'core/frozen_panel.dart';
 import 'core/header_row.dart';
 import 'pagination/pagination_footer.dart';
 import 'tablex_types.dart';
+import 'toolbar/_file_save.dart';
 
 export 'tablex_types.dart';
 
@@ -77,6 +79,9 @@ class Tablex<T> extends StatefulWidget {
     List<TablexSelectionAction<T>>? selectionActions,
     bool includeClearSelectionAction = true,
     TablexSelectionSummaryBuilder<T>? selectionSummaryBuilder,
+    Future<void> Function(String csv)? onExportSelectedCsv,
+    Future<void> Function(Uint8List bytes)? onExportSelectedExcel,
+    Future<void> Function(Uint8List bytes)? onExportSelectedPdf,
   })  : _variant = _TablexVariant.static_,
         _columns = columns,
         _staticRows = rows,
@@ -108,7 +113,10 @@ class Tablex<T> extends StatefulWidget {
         _showSelectionSummary = showSelectionSummary,
         _selectionActions = selectionActions,
         _includeClearSelectionAction = includeClearSelectionAction,
-        _selectionSummaryBuilder = selectionSummaryBuilder;
+        _selectionSummaryBuilder = selectionSummaryBuilder,
+        _onExportSelectedCsv = onExportSelectedCsv,
+        _onExportSelectedExcel = onExportSelectedExcel,
+        _onExportSelectedPdf = onExportSelectedPdf;
 
   // --------------------------------------------------------------------------
   // Lazy paged constructor
@@ -153,6 +161,9 @@ class Tablex<T> extends StatefulWidget {
     List<TablexSelectionAction<T>>? selectionActions,
     bool includeClearSelectionAction = true,
     TablexSelectionSummaryBuilder<T>? selectionSummaryBuilder,
+    Future<void> Function(String csv)? onExportSelectedCsv,
+    Future<void> Function(Uint8List bytes)? onExportSelectedExcel,
+    Future<void> Function(Uint8List bytes)? onExportSelectedPdf,
   })  : _variant = _TablexVariant.lazyPaged,
         _columns = columns,
         _fetchTask = fetchTask,
@@ -184,7 +195,10 @@ class Tablex<T> extends StatefulWidget {
         _showSelectionSummary = showSelectionSummary,
         _selectionActions = selectionActions,
         _includeClearSelectionAction = includeClearSelectionAction,
-        _selectionSummaryBuilder = selectionSummaryBuilder;
+        _selectionSummaryBuilder = selectionSummaryBuilder,
+        _onExportSelectedCsv = onExportSelectedCsv,
+        _onExportSelectedExcel = onExportSelectedExcel,
+        _onExportSelectedPdf = onExportSelectedPdf;
 
   // --------------------------------------------------------------------------
   // Infinite scroll constructor
@@ -222,6 +236,9 @@ class Tablex<T> extends StatefulWidget {
     List<TablexSelectionAction<T>>? selectionActions,
     bool includeClearSelectionAction = true,
     TablexSelectionSummaryBuilder<T>? selectionSummaryBuilder,
+    Future<void> Function(String csv)? onExportSelectedCsv,
+    Future<void> Function(Uint8List bytes)? onExportSelectedExcel,
+    Future<void> Function(Uint8List bytes)? onExportSelectedPdf,
   })  : _variant = _TablexVariant.infinite,
         _columns = columns,
         _fetchTask = fetchTask,
@@ -253,7 +270,10 @@ class Tablex<T> extends StatefulWidget {
         _showSelectionSummary = showSelectionSummary,
         _selectionActions = selectionActions,
         _includeClearSelectionAction = includeClearSelectionAction,
-        _selectionSummaryBuilder = selectionSummaryBuilder;
+        _selectionSummaryBuilder = selectionSummaryBuilder,
+        _onExportSelectedCsv = onExportSelectedCsv,
+        _onExportSelectedExcel = onExportSelectedExcel,
+        _onExportSelectedPdf = onExportSelectedPdf;
 
   // --------------------------------------------------------------------------
   // Select constructor
@@ -311,7 +331,10 @@ class Tablex<T> extends StatefulWidget {
         _showSelectionSummary = false,
         _selectionActions = null,
         _includeClearSelectionAction = true,
-        _selectionSummaryBuilder = null;
+        _selectionSummaryBuilder = null,
+        _onExportSelectedCsv = null,
+        _onExportSelectedExcel = null,
+        _onExportSelectedPdf = null;
 
   // --------------------------------------------------------------------------
   // Shared fields
@@ -349,6 +372,9 @@ class Tablex<T> extends StatefulWidget {
   final List<TablexSelectionAction<T>>? _selectionActions;
   final bool _includeClearSelectionAction;
   final TablexSelectionSummaryBuilder<T>? _selectionSummaryBuilder;
+  final Future<void> Function(String csv)? _onExportSelectedCsv;
+  final Future<void> Function(Uint8List bytes)? _onExportSelectedExcel;
+  final Future<void> Function(Uint8List bytes)? _onExportSelectedPdf;
 
   @override
   State<Tablex<T>> createState() => _TablexState<T>();
@@ -533,6 +559,11 @@ class _TablexState<T> extends State<Tablex<T>> with _TablexStateMixin<T> {
             onClear: _controller.clearSelection,
             actions: widget._selectionActions,
             includeClearAction: widget._includeClearSelectionAction,
+            columns: widget._columns,
+            controller: _controller,
+            onExportSelectedCsv: widget._onExportSelectedCsv,
+            onExportSelectedExcel: widget._onExportSelectedExcel,
+            onExportSelectedPdf: widget._onExportSelectedPdf,
           );
 
     Widget buildScrollableHeader() => SingleChildScrollView(
@@ -697,15 +728,20 @@ class _InfiniteLoadingBar extends StatelessWidget {
 // Selection summary header
 // ============================================================================
 
-class _SelectionSummaryHeader<T> extends StatelessWidget {
+class _SelectionSummaryHeader<T> extends StatefulWidget {
   const _SelectionSummaryHeader({
     required this.selectedCount,
     required this.selectedItems,
     required this.density,
     required this.theme,
     required this.onClear,
+    required this.columns,
+    required this.controller,
     this.actions,
     this.includeClearAction = true,
+    this.onExportSelectedCsv,
+    this.onExportSelectedExcel,
+    this.onExportSelectedPdf,
   });
 
   final int selectedCount;
@@ -713,8 +749,97 @@ class _SelectionSummaryHeader<T> extends StatelessWidget {
   final TablexDensity density;
   final TablexThemeData theme;
   final VoidCallback onClear;
+  final List<TablexColumnBase<T>> columns;
+  final TablexController<T> controller;
   final List<TablexSelectionAction<T>>? actions;
   final bool includeClearAction;
+
+  /// Override for the CSV export button. When provided, replaces the default
+  /// behaviour (show a copy dialog). Pass `null` to keep the default.
+  final Future<void> Function(String csv)? onExportSelectedCsv;
+
+  /// Override for the Excel export button. When provided, replaces the default
+  /// behaviour (save file via [saveFile]). Pass `null` to keep the default.
+  final Future<void> Function(Uint8List bytes)? onExportSelectedExcel;
+
+  /// Override for the PDF export button. When provided, replaces the default
+  /// behaviour (save file via [saveFile]). Pass `null` to keep the default.
+  final Future<void> Function(Uint8List bytes)? onExportSelectedPdf;
+
+  @override
+  State<_SelectionSummaryHeader<T>> createState() =>
+      _SelectionSummaryHeaderState<T>();
+}
+
+class _SelectionSummaryHeaderState<T>
+    extends State<_SelectionSummaryHeader<T>> {
+  bool _busy = false;
+
+  Future<void> _run(Future<void> Function() fn) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await fn();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _exportCsv() async {
+    final csv = widget.controller.exportSelectedToCsv(widget.columns);
+    if (widget.onExportSelectedCsv != null) {
+      await widget.onExportSelectedCsv!(csv);
+      return;
+    }
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Export selected — CSV'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560, maxHeight: 400),
+          child: SingleChildScrollView(
+            child: SelectableText(
+              csv,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: csv));
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Copy & Close'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportExcel() async {
+    final bytes = widget.controller.exportSelectedToExcel(widget.columns);
+    if (widget.onExportSelectedExcel != null) {
+      await widget.onExportSelectedExcel!(bytes);
+      return;
+    }
+    await saveFile('export_selected.xlsx', bytes);
+  }
+
+  Future<void> _exportPdf() async {
+    final bytes =
+        await widget.controller.exportSelectedToPdf(widget.columns);
+    if (widget.onExportSelectedPdf != null) {
+      await widget.onExportSelectedPdf!(bytes);
+      return;
+    }
+    await saveFile('export_selected.pdf', bytes);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -722,35 +847,68 @@ class _SelectionSummaryHeader<T> extends StatelessWidget {
     final strings = tablexStrings(context);
 
     return Container(
-      height: density.headerHeight,
-      color: cs.primaryContainer,
+      height: widget.density.headerHeight,
+      color: widget.theme.selectionSummaryBarColor,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
           Text(
-            strings.selected(selectedCount),
-            style: theme.headerTextStyle?.copyWith(
+            strings.selected(widget.selectedCount),
+            style: widget.theme.headerTextStyle?.copyWith(
               color: cs.onPrimaryContainer,
             ),
           ),
           const Spacer(),
-          if (actions != null)
-            ...actions!.map(
+          if (widget.actions != null)
+            ...widget.actions!.map(
               (action) => TextButton.icon(
                 icon: Icon(action.icon, size: 16),
                 label: Text(action.label),
                 style: TextButton.styleFrom(
                   foregroundColor: cs.onPrimaryContainer,
                 ),
-                onPressed: () => action.onPressed(selectedItems),
+                onPressed: () => action.onPressed(widget.selectedItems),
               ),
             ),
-          if (includeClearAction)
+          IconButton(
+            icon: const Icon(Icons.download_outlined, size: 18),
+            tooltip: 'Export selected as CSV',
+            color: cs.onPrimaryContainer,
+            visualDensity: VisualDensity.compact,
+            onPressed: _busy ? null : () => _run(_exportCsv),
+          ),
+          IconButton(
+            icon: const Icon(Icons.table_chart_outlined, size: 18),
+            tooltip: 'Export selected as Excel',
+            color: cs.onPrimaryContainer,
+            visualDensity: VisualDensity.compact,
+            onPressed: _busy ? null : () => _run(_exportExcel),
+          ),
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+            tooltip: 'Export selected as PDF',
+            color: cs.onPrimaryContainer,
+            visualDensity: VisualDensity.compact,
+            onPressed: _busy ? null : () => _run(_exportPdf),
+          ),
+          if (_busy)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: cs.onPrimaryContainer,
+                ),
+              ),
+            ),
+          if (widget.includeClearAction)
             IconButton(
               icon: const Icon(Icons.close, size: 18),
               tooltip: strings.clear,
               color: cs.onPrimaryContainer,
-              onPressed: onClear,
+              onPressed: widget.onClear,
             ),
         ],
       ),

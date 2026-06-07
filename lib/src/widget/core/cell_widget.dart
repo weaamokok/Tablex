@@ -52,6 +52,7 @@ class TablexCellWidget<TRow> extends StatelessWidget {
       columnField: column.fieldKey,
       columnTitle: column.title,
       columnType: column.type,
+      enableTextSelection: theme.enableTextSelection,
     );
 
     Widget content;
@@ -62,8 +63,16 @@ class TablexCellWidget<TRow> extends StatelessWidget {
       final built = column.buildCell(row.data, rawValue, ctx);
       if (built != null) {
         content = built;
-      } else if (rawValue == null && column.showEmptyAsDash) {
-        content = _textCell(column.effectivePlaceholder, context);
+      } else if (rawValue == null) {
+        final placeholder = column.emptyCellPlaceholder ??
+            theme.emptyCellPlaceholder ??
+            (column.showEmptyAsDash ? '—' : null);
+        if (placeholder != null) {
+          content = _textCell(placeholder, context,
+              selectable: theme.enableTextSelection);
+        } else {
+          content = _buildDefaultForType(context, rawValue, ctx);
+        }
       } else {
         content = _buildDefaultForType(context, rawValue, ctx);
       }
@@ -113,40 +122,47 @@ class TablexCellWidget<TRow> extends StatelessWidget {
         column.formatValueRaw(rawValue) ?? rawValue?.toString() ?? '';
 
     if (type == TablexColumnType.number) {
-      return _textCell(formatted, context, endAlign: true);
+      return _textCell(formatted, context,
+          endAlign: true, selectable: theme.enableTextSelection);
     }
 
-    return _textCell(formatted, context);
+    return _textCell(formatted, context, selectable: theme.enableTextSelection);
   }
 
-  Widget _textCell(String text, BuildContext context, {bool endAlign = false}) {
+  Widget _textCell(String text, BuildContext context,
+      {bool endAlign = false, bool selectable = false}) {
     final direction = Directionality.of(context);
     final isLtr = direction == TextDirection.ltr;
     TextAlign align;
-    Alignment boxAlign;
     if (endAlign) {
       align = isLtr ? TextAlign.right : TextAlign.left;
-      boxAlign = isLtr ? Alignment.centerRight : Alignment.centerLeft;
     } else if (column.textAlign == TextAlign.start) {
       align = isLtr ? TextAlign.left : TextAlign.right;
-      boxAlign = isLtr ? Alignment.centerLeft : Alignment.centerRight;
     } else if (column.textAlign == TextAlign.end) {
       align = isLtr ? TextAlign.right : TextAlign.left;
-      boxAlign = isLtr ? Alignment.centerRight : Alignment.centerLeft;
     } else {
       align = column.textAlign;
-      boxAlign = isLtr ? Alignment.centerLeft : Alignment.centerRight;
     }
+    final style =
+        theme.cellTextStyle?.copyWith(overflow: TextOverflow.ellipsis) ??
+            const TextStyle(overflow: TextOverflow.ellipsis);
     return Padding(
       padding: theme.cellPadding,
       child: Align(
-        alignment: boxAlign,
-        child: Text(
-          text,
-          overflow: TextOverflow.ellipsis,
-          textAlign: align,
-          style: theme.cellTextStyle,
-        ),
+        alignment: AlignmentDirectional.center,
+        child: selectable
+            ? SelectableText(
+                text,
+                maxLines: 1,
+                textAlign: align,
+                style: style,
+              )
+            : Text(
+                text,
+                overflow: TextOverflow.ellipsis,
+                textAlign: align,
+                style: theme.cellTextStyle,
+              ),
       ),
     );
   }

@@ -137,37 +137,140 @@ String _cellValueToString(CellValue? value) {
 // ---------------------------------------------------------------------------
 
 extension TablexControllerExport<T> on TablexController<T> {
-  /// Serialises all currently loaded rows to a CSV string.
+  // ── Private helpers ─────────────────────────────────────────────────────────
+
+  List<TablexColumnBase<T>> _visibleColumns(List<TablexColumnBase<T>> columns) =>
+      columns
+          .where((c) => !c.hide && !isColumnHidden(c.fieldKey))
+          .toList(growable: false);
+
+  /// Returns the row keys for [items], preserving display order.
+  List<String> _keysForItems(List<T> items) {
+    final set = Set<T>.identity()..addAll(items);
+    return _rowOrder.where((k) => set.contains(_rowMap[k]!.data)).toList();
+  }
+
+  String _buildCsv(List<TablexColumnBase<T>> visible, List<String> keys) {
+    final buffer = StringBuffer();
+    buffer.writeln(visible.map((c) => _csvCell(c.title)).join(','));
+    for (final key in keys) {
+      final row = _rowMap[key]!;
+      buffer.writeln(visible.map((col) {
+        final raw = row.cells[col.fieldKey];
+        return _csvCell(
+            raw == null ? '' : (col.formatValueRaw(raw) ?? raw.toString()));
+      }).join(','));
+    }
+    return buffer.toString();
+  }
+
+  Uint8List _buildExcel(
+    List<TablexColumnBase<T>> visible,
+    List<String> keys,
+    String sheetName,
+  ) {
+    final workbook = Excel.createExcel();
+    final defaultSheet = workbook.getDefaultSheet();
+    final sheet = workbook[sheetName];
+    if (defaultSheet != null && defaultSheet != sheetName) {
+      workbook.delete(defaultSheet);
+    }
+    sheet.appendRow(
+        visible.map<CellValue>((c) => TextCellValue(c.title)).toList());
+    for (final key in keys) {
+      final row = _rowMap[key]!;
+      sheet.appendRow(visible.map<CellValue>((col) {
+        final raw = row.cells[col.fieldKey];
+        if (raw == null) return TextCellValue('');
+        return _toCellValue(raw, col.formatValueRaw(raw));
+      }).toList());
+    }
+    final encoded = workbook.encode();
+    if (encoded == null) throw StateError('Excel encoding produced no output.');
+    return Uint8List.fromList(encoded);
+  }
+
+  Future<Uint8List> _buildPdf(
+    List<TablexColumnBase<T>> visible,
+    List<String> keys,
+  ) async {
+    final headers = visible.map((c) => c.title).toList();
+    final rows = keys.map((key) {
+      final row = _rowMap[key]!;
+      return visible.map((col) {
+        final raw = row.cells[col.fieldKey];
+        return raw == null ? '' : (col.formatValueRaw(raw) ?? raw.toString());
+      }).toList();
+    }).toList();
+
+    final isNumericCol = visible
+        .map((c) =>
+            c.type == TablexColumnType.number ||
+            c.type == TablexColumnType.currency)
+        .toList();
+
+    final doc = pw.Document();
+    final pageFormat =
+        visible.length > 6 ? PdfPageFormat.a4.landscape : PdfPageFormat.a4;
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: pageFormat,
+        margin: const pw.EdgeInsets.all(32),
+        build: (_) => [
+          pw.TableHelper.fromTextArray(
+            headers: headers,
+            data: rows,
+            headerStyle: pw.TextStyle(
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.white,
+              fontSize: 9,
+            ),
+            headerDecoration:
+                const pw.BoxDecoration(color: PdfColors.blueGrey800),
+            cellStyle: const pw.TextStyle(fontSize: 8),
+            oddRowDecoration:
+                const pw.BoxDecoration(color: PdfColors.grey100),
+            cellAlignments: {
+              for (int i = 0; i < visible.length; i++)
+                i: isNumericCol[i]
+                    ? pw.Alignment.centerRight
+                    : pw.Alignment.centerLeft,
+            },
+            border: pw.TableBorder.all(
+              color: PdfColors.grey300,
+              width: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return doc.save();
+  }
+
+  // ── Public export API ───────────────────────────────────────────────────────
+
+  /// Serialises **all currently loaded rows** to a CSV string.
   ///
-  /// Only visible (non-hidden) columns are included. Values are sanitised to
-  /// prevent CSV injection. Wrap the result in a `Blob` / write it to a file
-  /// using your preferred platform API.
+  /// For `lazyPaged` and `infinite` grids this includes only the rows
+  /// currently in memory (i.e. the loaded page / window), not the full
+  /// server-side dataset. Use [exportSelectedToCsv] to export a specific
+  /// subset after selecting rows.
   ///
-  /// ```dart
-  /// final csv = controller.exportToCsv(columns);
-  /// await FileSaver.instance.saveFile('export.csv', csv.codeUnits);
-  /// ```
+  /// Only visible (non-hidden) columns are included.
   String exportToCsv(List<TablexColumnBase<T>> columns) {
     _checkDisposed();
-    final visibleColumns = columns
-        .where((c) => !c.hide && !isColumnHidden(c.fieldKey))
-        .toList(growable: false);
+    return _buildCsv(_visibleColumns(columns), _rowOrder);
+  }
 
-    final buffer = StringBuffer();
-    buffer.writeln(visibleColumns.map((c) => _csvCell(c.title)).join(','));
-
-    for (final key in _rowOrder) {
-      final row = _rowMap[key]!;
-      final values = visibleColumns.map((col) {
-        final raw = row.cells[col.fieldKey];
-        final text =
-            raw == null ? '' : (col.formatValueRaw(raw) ?? raw.toString());
-        return _csvCell(text);
-      });
-      buffer.writeln(values.join(','));
-    }
-
-    return buffer.toString();
+  /// Serialises only the **currently selected rows** to a CSV string.
+  ///
+  /// Returns a header-only CSV when no rows are selected.
+  String exportSelectedToCsv(List<TablexColumnBase<T>> columns) {
+    _checkDisposed();
+    return _buildCsv(
+        _visibleColumns(columns), _keysForItems(_state.selectedRows));
   }
 
   /// Imports rows from a CSV string.
@@ -229,52 +332,54 @@ extension TablexControllerExport<T> on TablexController<T> {
     _notify();
   }
 
-  /// Serialises all currently loaded rows to an Excel (.xlsx) byte array.
+  /// Serialises **all currently loaded rows** to an Excel (.xlsx) byte array.
   ///
-  /// Only visible (non-hidden) columns are included. Numeric and boolean
-  /// values are written as typed Excel cells; everything else uses the
-  /// column's [TablexColumn.formatter] or `toString()`.
+  /// For `lazyPaged` and `infinite` grids this includes only the rows
+  /// currently in memory. Use [exportSelectedToExcel] to export a specific
+  /// subset after selecting rows.
   ///
-  /// ```dart
-  /// final bytes = controller.exportToExcel(columns);
-  /// await FileSaver.instance.saveFile('export.xlsx', bytes);
-  /// ```
+  /// Only visible (non-hidden) columns are included.
   Uint8List exportToExcel(
     List<TablexColumnBase<T>> columns, {
     String sheetName = 'Sheet1',
   }) {
     _checkDisposed();
-    final visibleColumns = columns
-        .where((c) => !c.hide && !isColumnHidden(c.fieldKey))
-        .toList(growable: false);
+    return _buildExcel(_visibleColumns(columns), _rowOrder, sheetName);
+  }
 
-    final workbook = Excel.createExcel();
-    final defaultSheet = workbook.getDefaultSheet();
-    final sheet = workbook[sheetName];
-    if (defaultSheet != null && defaultSheet != sheetName) {
-      workbook.delete(defaultSheet);
-    }
+  /// Serialises only the **currently selected rows** to an Excel (.xlsx) byte array.
+  ///
+  /// Returns a header-only workbook when no rows are selected.
+  Uint8List exportSelectedToExcel(
+    List<TablexColumnBase<T>> columns, {
+    String sheetName = 'Sheet1',
+  }) {
+    _checkDisposed();
+    return _buildExcel(
+        _visibleColumns(columns), _keysForItems(_state.selectedRows), sheetName);
+  }
 
-    sheet.appendRow(
-      visibleColumns
-          .map<CellValue>((c) => TextCellValue(c.title))
-          .toList(growable: false),
-    );
+  /// Serialises **all currently loaded rows** to a PDF byte array.
+  ///
+  /// For `lazyPaged` and `infinite` grids this includes only the rows
+  /// currently in memory. Use [exportSelectedToPdf] to export a specific
+  /// subset after selecting rows.
+  ///
+  /// Only visible (non-hidden) columns are included. The page is automatically
+  /// switched to landscape when more than six columns are visible.
+  Future<Uint8List> exportToPdf(List<TablexColumnBase<T>> columns) async {
+    _checkDisposed();
+    return _buildPdf(_visibleColumns(columns), _rowOrder);
+  }
 
-    for (final key in _rowOrder) {
-      final row = _rowMap[key]!;
-      sheet.appendRow(
-        visibleColumns.map<CellValue>((col) {
-          final raw = row.cells[col.fieldKey];
-          if (raw == null) return TextCellValue('');
-          return _toCellValue(raw, col.formatValueRaw(raw));
-        }).toList(growable: false),
-      );
-    }
-
-    final encoded = workbook.encode();
-    if (encoded == null) throw StateError('Excel encoding produced no output.');
-    return Uint8List.fromList(encoded);
+  /// Serialises only the **currently selected rows** to a PDF byte array.
+  ///
+  /// Returns a header-only PDF when no rows are selected.
+  Future<Uint8List> exportSelectedToPdf(
+      List<TablexColumnBase<T>> columns) async {
+    _checkDisposed();
+    return _buildPdf(
+        _visibleColumns(columns), _keysForItems(_state.selectedRows));
   }
 
   /// Imports rows from an Excel (.xlsx) byte array.

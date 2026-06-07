@@ -80,10 +80,10 @@ class TablexRenderers {
   }) =>
       (row, value, ctx) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
+            child: _cellText(
               value,
+              selectable: ctx.enableTextSelection,
               textAlign: align ?? _toTextAlign(ctx),
-              overflow: TextOverflow.ellipsis,
               style: style?.copyWith(color: color) ?? TextStyle(color: color),
             ),
           );
@@ -124,11 +124,14 @@ class TablexRenderers {
   static Widget Function(TRow, DateTime, TablexCellContext) date<TRow>({
     String format = 'dd MMM yyyy',
   }) =>
-      (row, value, ctx) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
-              intl.DateFormat(format).format(value),
-              overflow: TextOverflow.ellipsis,
+      (row, value, ctx) => Align(
+            alignment: AlignmentGeometry.center,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: _cellText(
+                intl.DateFormat(format).format(value),
+                selectable: ctx.enableTextSelection,
+              ),
             ),
           );
 
@@ -145,9 +148,9 @@ class TablexRenderers {
   }) =>
       (row, value, ctx) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
+            child: _cellText(
               intl.DateFormat(format).format(value),
-              overflow: TextOverflow.ellipsis,
+              selectable: ctx.enableTextSelection,
             ),
           );
 
@@ -293,14 +296,14 @@ class TablexRenderers {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                _cellText(
                   value,
-                  overflow: TextOverflow.ellipsis,
+                  selectable: ctx.enableTextSelection,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                Text(
+                _cellText(
                   secondLine(row),
-                  overflow: TextOverflow.ellipsis,
+                  selectable: ctx.enableTextSelection,
                   style: secondLineStyle ??
                       const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
@@ -344,14 +347,14 @@ class TablexRenderers {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    _cellText(
                       value,
-                      overflow: TextOverflow.ellipsis,
+                      selectable: ctx.enableTextSelection,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    Text(
+                    _cellText(
                       secondLine(row),
-                      overflow: TextOverflow.ellipsis,
+                      selectable: ctx.enableTextSelection,
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
@@ -422,6 +425,37 @@ class TablexRenderers {
 }
 
 // ============================================================================
+// Private helpers
+// ============================================================================
+
+/// Returns [SelectableText] when [selectable] is true, otherwise [Text].
+/// Both respect [overflow] and [maxLines] so cell layout is identical.
+Widget _cellText(
+  String value, {
+  required bool selectable,
+  TextStyle? style,
+  TextAlign? textAlign,
+  int maxLines = 1,
+}) {
+  if (selectable) {
+    return SelectableText(
+      value,
+      maxLines: maxLines,
+      textAlign: textAlign,
+      style: style?.copyWith(overflow: TextOverflow.ellipsis) ??
+          const TextStyle(overflow: TextOverflow.ellipsis),
+    );
+  }
+  return Text(
+    value,
+    overflow: TextOverflow.ellipsis,
+    maxLines: maxLines,
+    textAlign: textAlign,
+    style: style,
+  );
+}
+
+// ============================================================================
 // Private helper widgets
 // ============================================================================
 
@@ -456,14 +490,14 @@ class _CurrencyCell<TRow> extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Text(
+        child: _cellText(
           formatted,
+          selectable: ctx.enableTextSelection,
           textAlign: TextAlign.end,
           style: TextStyle(
             color: color,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
-          overflow: TextOverflow.ellipsis,
         ),
       ),
     );

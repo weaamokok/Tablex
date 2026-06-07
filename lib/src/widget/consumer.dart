@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../controller/controller.dart';
 import '../model/column.dart';
 import '../model/enums.dart';
@@ -10,6 +11,7 @@ import 'core/filter_bar.dart';
 import 'pagination/pagination_footer.dart' show TablexFooterBuilder;
 import 'selection/selection_summary_bar.dart';
 import 'tablex_widget.dart';
+import 'toolbar/_file_save.dart';
 
 /// The recommended top-level widget for server-paginated data grids.
 ///
@@ -79,6 +81,9 @@ class TablexConsumer<T> extends StatefulWidget {
     this.enablePageJump = false,
     this.footerBuilder,
     this.theme,
+    this.onExportSelectedCsv,
+    this.onExportSelectedExcel,
+    this.onExportSelectedPdf,
   });
 
   /// Column definitions. See [TablexColumn] and [TablexRenderers].
@@ -203,6 +208,21 @@ class TablexConsumer<T> extends StatefulWidget {
   /// footerBuilder: (info) => MyCustomFooter(info: info),
   /// ```
   final TablexFooterBuilder? footerBuilder;
+
+  /// Override for the "Export selected as CSV" button in the selection summary
+  /// bar. Receives the generated CSV string. When `null` the default copy
+  /// dialog is shown.
+  final Future<void> Function(String csv)? onExportSelectedCsv;
+
+  /// Override for the "Export selected as Excel" button in the selection
+  /// summary bar. Receives the raw `.xlsx` bytes. When `null` the file is
+  /// saved via the built-in [saveFile] helper.
+  final Future<void> Function(Uint8List bytes)? onExportSelectedExcel;
+
+  /// Override for the "Export selected as PDF" button in the selection
+  /// summary bar. Receives the raw `.pdf` bytes. When `null` the file is
+  /// saved via the built-in [saveFile] helper.
+  final Future<void> Function(Uint8List bytes)? onExportSelectedPdf;
 
   @override
   State<TablexConsumer<T>> createState() => _TablexConsumerState<T>();
@@ -337,6 +357,33 @@ class _TablexConsumerState<T> extends State<TablexConsumer<T>> {
                               ),
                             )
                             .toList(),
+                        onExportSelectedCsv: () async {
+                          final csv = _controller
+                              .exportSelectedToCsv(widget.columns);
+                          if (widget.onExportSelectedCsv != null) {
+                            await widget.onExportSelectedCsv!(csv);
+                          } else {
+                            await _showCsvDialog(context, csv);
+                          }
+                        },
+                        onExportSelectedExcel: () async {
+                          final bytes = _controller
+                              .exportSelectedToExcel(widget.columns);
+                          if (widget.onExportSelectedExcel != null) {
+                            await widget.onExportSelectedExcel!(bytes);
+                          } else {
+                            await saveFile('export_selected.xlsx', bytes);
+                          }
+                        },
+                        onExportSelectedPdf: () async {
+                          final bytes = await _controller
+                              .exportSelectedToPdf(widget.columns);
+                          if (widget.onExportSelectedPdf != null) {
+                            await widget.onExportSelectedPdf!(bytes);
+                          } else {
+                            await saveFile('export_selected.pdf', bytes);
+                          }
+                        },
                       ),
             ],
           ),
@@ -344,4 +391,35 @@ class _TablexConsumerState<T> extends State<TablexConsumer<T>> {
       ),
     );
   }
+}
+
+Future<void> _showCsvDialog(BuildContext context, String csv) async {
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Export CSV'),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 400),
+        child: SingleChildScrollView(
+          child: SelectableText(
+            csv,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: csv));
+            if (ctx.mounted) Navigator.pop(ctx);
+          },
+          child: const Text('Copy & Close'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
 }

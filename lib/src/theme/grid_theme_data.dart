@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 // ============================================================================
@@ -129,6 +130,9 @@ class TablexThemeData {
     this.paginationBackgroundColor,
     this.borderRadius = const BorderRadius.all(Radius.circular(8)),
     this.editInputDecoration,
+    this.selectionSummaryBarColor,
+    this.enableTextSelection = kIsWeb,
+    this.emptyCellPlaceholder,
   });
 
   /// Background colour of the data area. Defaults to [ColorScheme.surface].
@@ -195,6 +199,28 @@ class TablexThemeData {
   /// Corner radius of the outer grid border. Defaults to 8 px on all corners.
   final BorderRadius borderRadius;
 
+  /// Background colour of the selection summary bar shown when rows are
+  /// selected. Defaults to [ColorScheme.surfaceContainerHighest].
+  final Color? selectionSummaryBarColor;
+
+  /// Whether cell text is rendered as selectable (copy-able via pointer drag).
+  ///
+  /// Defaults to `true` on web (`kIsWeb`) and `false` everywhere else.
+  /// Set to `true` on desktop if you want the same behaviour there.
+  final bool enableTextSelection;
+
+  /// Grid-wide placeholder shown for null/empty cells when no
+  /// [TablexColumnBase.emptyCellPlaceholder] is set on the column.
+  ///
+  /// When `null` the column's own [TablexColumnBase.showEmptyAsDash] flag
+  /// controls whether a `'—'` is shown (the default behaviour).
+  ///
+  /// Example — show `'N/A'` for every empty cell in the grid:
+  /// ```dart
+  /// TablexThemeData(emptyCellPlaceholder: 'N/A')
+  /// ```
+  final String? emptyCellPlaceholder;
+
   /// Decoration applied to the default inline-edit text field.
   ///
   /// When `null` the grid uses a compact underline decoration:
@@ -245,6 +271,10 @@ class TablexThemeData {
           paginationBackgroundColor ?? colorScheme.surfaceContainerLow,
       borderRadius: borderRadius,
       editInputDecoration: editInputDecoration,
+      selectionSummaryBarColor:
+          selectionSummaryBarColor ?? colorScheme.surfaceContainerHighest,
+      enableTextSelection: enableTextSelection,
+      emptyCellPlaceholder: emptyCellPlaceholder,
     );
   }
 
@@ -269,6 +299,8 @@ class TablexThemeData {
     Color? paginationBackgroundColor,
     BorderRadius? borderRadius,
     InputDecoration? editInputDecoration,
+    Color? selectionSummaryBarColor,
+    bool? enableTextSelection,
   }) {
     return TablexThemeData(
       backgroundColor: backgroundColor ?? this.backgroundColor,
@@ -295,6 +327,11 @@ class TablexThemeData {
           paginationBackgroundColor ?? this.paginationBackgroundColor,
       borderRadius: borderRadius ?? this.borderRadius,
       editInputDecoration: editInputDecoration ?? this.editInputDecoration,
+      selectionSummaryBarColor:
+          selectionSummaryBarColor ?? this.selectionSummaryBarColor,
+      enableTextSelection: enableTextSelection ?? this.enableTextSelection,
+      // ignore: unnecessary_this
+      emptyCellPlaceholder: emptyCellPlaceholder ?? this.emptyCellPlaceholder,
     );
   }
 }

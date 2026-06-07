@@ -1,5 +1,7 @@
 import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:flutter/scheduler.dart';
 import '../model/column.dart';
 import '../model/enums.dart';

@@ -321,9 +321,8 @@ List<TablexColumnBase<Employee>> _employeeColumns({
       fieldKey: 'joinDate',
       title: 'Joined',
       width: 120,
-      type: TablexColumnType.date,
       valueGetter: (e) => e.joinDate,
-      // cellRenderer: TablexRenderers.date(),
+      cellRenderer: TablexRenderers.date(),
     ),
     TablexColumn<Employee, EmployeeStatus>(
       fieldKey: 'status',

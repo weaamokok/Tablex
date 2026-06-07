@@ -1,3 +1,45 @@
+## 0.5.0
+
+### New features
+
+* **PDF export** — `TablexController.exportToPdf(columns)` and `exportSelectedToPdf(columns)` generate a styled `.pdf` byte array. The page switches automatically to landscape when more than six visible columns are present; `number` and `currency` columns are right-aligned; rows alternate between white and light-grey. Requires the new `pdf: ^3.10.7` dependency.
+
+* **Export selected rows** — new controller methods `exportSelectedToCsv`, `exportSelectedToExcel`, and `exportSelectedToPdf` serialise only the currently selected rows. The toolbar export buttons (CSV, Excel, PDF) automatically switch to selected-only mode when rows are selected — tooltip updates to show the count (e.g. `'Export CSV (3 selected)'`). The selection summary bar now shows CSV, Excel, and PDF icon buttons for the same purpose.
+
+* **Selectable cell text on web** — cell text is rendered with `SelectableText` on web by default, allowing users to click-drag to copy values without leaving the grid. Controlled by `TablexThemeData.enableTextSelection` (defaults to `kIsWeb`; opt in on desktop by setting it to `true`). Applies to all built-in text renderers: `text`, `date`, `dateTime`, `twoLine`, `avatarTwoLine`, `currency`, and the default type-based cell. Row tap and double-tap interactions are unaffected.
+
+* **Theme-level empty-cell placeholder** — `TablexThemeData.emptyCellPlaceholder` sets a grid-wide string shown for `null` cell values (e.g. `'N/A'`), without having to configure `TablexColumnBase.emptyCellPlaceholder` on every column. Precedence: column-level → theme-level → `'—'` (when `showEmptyAsDash`) → blank.
+
+* **Themeable selection summary bar colour** — `TablexThemeData.selectionSummaryBarColor` controls the background of the selection summary bar. Defaults to `ColorScheme.surfaceContainerHighest`. Both `TablexSelectionSummaryBar` (standalone) and the built-in `_SelectionSummaryHeader` inside `Tablex` respect this value.
+
+### API additions
+
+| Symbol | Kind | Notes |
+|---|---|---|
+| `TablexController.exportToPdf()` | method | All rows → PDF bytes (async) |
+| `TablexController.exportSelectedToPdf()` | method | Selected rows → PDF bytes (async) |
+| `TablexController.exportSelectedToCsv()` | method | Selected rows → CSV string |
+| `TablexController.exportSelectedToExcel()` | method | Selected rows → `.xlsx` bytes |
+| `Tablex.*.onExportSelectedCsv` | param | Override CSV export in the summary bar |
+| `Tablex.*.onExportSelectedExcel` | param | Override Excel export in the summary bar |
+| `Tablex.*.onExportSelectedPdf` | param | Override PDF export in the summary bar |
+| `TablexConsumer.onExportSelectedCsv` | param | Same, for `TablexConsumer` |
+| `TablexConsumer.onExportSelectedExcel` | param | Same, for `TablexConsumer` |
+| `TablexConsumer.onExportSelectedPdf` | param | Same, for `TablexConsumer` |
+| `TablexToolbar.onExportPdf` | param | Override PDF toolbar action |
+| `TablexToolbar.exportPdfIcon` | param | Custom icon for the PDF button |
+| `TablexSelectionSummaryBar.onExportSelectedPdf` | param | PDF button in standalone summary bar |
+| `TablexThemeData.enableTextSelection` | field | Toggle `SelectableText` in cells |
+| `TablexThemeData.emptyCellPlaceholder` | field | Grid-wide null-cell placeholder |
+| `TablexThemeData.selectionSummaryBarColor` | field | Summary bar background colour |
+| `TablexCellContext.enableTextSelection` | field | Readable by custom renderers |
+
+### Dependencies
+
+* Added `pdf: ^3.10.7`.
+
+---
+
 ## 0.4.0
 
 ### New features
