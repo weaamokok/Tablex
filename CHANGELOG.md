@@ -1,3 +1,12 @@
+## 0.5.1
+
+### Documentation
+
+* Updated `README.md` to cover PDF export, export-selected-rows, selectable cell text, theme-level empty-cell placeholder, and selection summary bar colour.
+* Bumped the `Getting started` version constraint to `^0.5.1`.
+
+---
+
 ## 0.5.0
 
 ### New features

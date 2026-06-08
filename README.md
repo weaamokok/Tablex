@@ -39,7 +39,7 @@ A production-grade Flutter data grid with no dependency on any third-party grid 
 
 ```yaml
 dependencies:
-  tablex: ^0.5.0
+  tablex: ^0.5.1
 ```
 
 ---
