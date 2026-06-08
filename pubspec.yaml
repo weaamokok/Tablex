@@ -1,6 +1,6 @@
 name: tablex
 description: "A production-grade Flutter data grid with zero dependency on any third-party grid engine."
-version: 0.5.2
+version: 0.5.3
 homepage: https://github.com/weaamokok/tablex
 repository: https://github.com/weaamokok/tablex
 issue_tracker: https://github.com/weaamokok/tablex/issues

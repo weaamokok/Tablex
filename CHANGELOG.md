@@ -1,3 +1,11 @@
+## 0.5.3
+
+### Documentation
+
+* Bumped version to `0.5.3`.
+
+---
+
 ## 0.5.2
 
 ### New features
