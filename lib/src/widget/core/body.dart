@@ -440,7 +440,7 @@ class _RowCheckbox extends StatelessWidget {
                   ? BoxDecoration(
                       borderRadius: BorderRadius.circular(cb.borderRadius ?? 3),
                       border: Border.all(
-                        width: 2,
+                        width: 1,
                         color: cb.activeColor ?? cs.primary,
                       ),
                       shape: BoxShape.rectangle,
