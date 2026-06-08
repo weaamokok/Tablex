@@ -247,10 +247,9 @@ class TablexThemeData {
       headerBackgroundColor:
           headerBackgroundColor ?? colorScheme.surfaceContainerLowest,
       rowEvenColor: rowEvenColor ?? colorScheme.surface,
-      rowOddColor: rowOddColor ?? colorScheme.surfaceContainerLowest,
-      rowHoverColor: rowHoverColor ?? colorScheme.surfaceContainerHigh,
-      rowSelectedColor:
-          rowSelectedColor ?? colorScheme.primaryContainer.withAlpha(120),
+      rowOddColor: rowOddColor ?? colorScheme.surface,
+      rowHoverColor: rowHoverColor ?? colorScheme.surfaceContainerLowest,
+      rowSelectedColor: rowSelectedColor ?? colorScheme.surfaceContainerHigh,
       borderColor: borderColor ?? colorScheme.surfaceContainerHigh,
       headerTextStyle: headerTextStyle ??
           textTheme.labelMedium?.copyWith(

@@ -22,9 +22,13 @@ A production-grade Flutter data grid with no dependency on any third-party grid 
 - **Column management** — resizable, sortable, reorderable headers; show/hide via column manager
 - **Row selection** — single or multi-select with a customisable summary bar and bulk-action buttons
 - **Built-in cell renderers** — identifier, two-line, avatar+two-line, currency, date, status chip, action buttons
-- **CSV & Excel export/import** — built-in toolbar with formula-injection protection
+- **CSV, Excel & PDF export/import** — built-in toolbar; export all rows or only selected rows; formula-injection protection on CSV
+- **Selectable cell text on web** — text cells use `SelectableText` by default on web so users can copy values by dragging; opt in on desktop via `TablexThemeData.enableTextSelection`
+- **Inline cell editing** — double-tap any editable cell; keyboard navigation between cells with Tab / Shift+Tab / ↓ / ↑
 - **Density presets** — `compact`, `standard`, `comfortable`
 - **Column groups** — spanning header labels across multiple columns
+- **Frozen columns** — pin columns to the left or right edge
+- **Cursor-based pagination** — opaque-cursor APIs supported alongside offset-based
 - **Theming** — full override via `TablexThemeData` or inherit from Material 3
 - **i18n** — locale strings via `slang` (override to ship your own language)
 - Zero third-party grid engine dependency
@@ -35,7 +39,7 @@ A production-grade Flutter data grid with no dependency on any third-party grid 
 
 ```yaml
 dependencies:
-  tablex: ^0.4.0
+  tablex: ^0.5.0
 ```
 
 ---
@@ -241,8 +245,15 @@ _controller.setSort(const TablexColumnSort(
 _controller.updateRow(0, updatedEmployee, rowBuilder: rowBuilder);
 _controller.removeRow(0);
 
-// Export
-final csv = _controller.exportToCsv(columns);
+// Export — all rows
+final csv   = _controller.exportToCsv(columns);
+final xlsx  = _controller.exportToExcel(columns);
+final pdf   = await _controller.exportToPdf(columns);   // async
+
+// Export — selected rows only
+final csv2  = _controller.exportSelectedToCsv(columns);
+final xlsx2 = _controller.exportSelectedToExcel(columns);
+final pdf2  = await _controller.exportSelectedToPdf(columns);
 
 // Selection
 _controller.selectAll(_controller.getAllRowData());
@@ -317,7 +328,9 @@ Tablex<Employee>.lazyPaged(
 
 ## Toolbar (export & import)
 
-`TablexToolbar` gives you column-visibility management, CSV export, Excel export, CSV import, and Excel import as a single drop-in widget.
+`TablexToolbar` gives you column-visibility management, CSV export, Excel export, **PDF export**, CSV import, and Excel import as a single drop-in widget.
+
+When rows are selected the export buttons automatically switch to selected-only mode — the tooltip updates to show the count (e.g. `'Export PDF (3 selected)'`).
 
 ```dart
 TablexConsumer<Employee>(
@@ -341,9 +354,23 @@ Override individual actions while keeping the rest:
 TablexToolbar<Employee>(
   controller: _controller,
   columns: _columns,
-  onExportCsv: (csv) async => await api.uploadCsv(csv),
-  onExportExcel: (bytes) async => await FileSaver.saveFile(bytes),
+  onExportCsv:   (csv)   async => await api.uploadCsv(csv),
+  onExportExcel: (bytes) async => await FileSaver.saveFile('report.xlsx', bytes),
+  onExportPdf:   (bytes) async => await FileSaver.saveFile('report.pdf', bytes),
 )
+```
+
+### PDF export
+
+`exportToPdf` and `exportSelectedToPdf` generate a styled `.pdf` byte array. The page switches automatically to landscape when there are more than six visible columns; `number` and `currency` columns are right-aligned.
+
+```dart
+// Via the controller directly
+final bytes = await _controller.exportToPdf(columns);
+await FileSaver.saveFile('report.pdf', bytes);
+
+// Selected rows only
+final bytes = await _controller.exportSelectedToPdf(columns);
 ```
 
 ---
@@ -362,6 +389,18 @@ Tablex<Employee>.static(
       onPressed: (selected) => _bulkDelete(selected),
     ),
   ],
+)
+```
+
+When `showSelectionSummary` is `true`, the summary bar automatically shows CSV, Excel, and PDF export buttons for the selected rows. Override any of them to plug in your own handler:
+
+```dart
+Tablex<Employee>.static(
+  // ...
+  showSelectionSummary: true,
+  onExportSelectedCsv:   (csv)   async => await api.uploadCsv(csv),
+  onExportSelectedExcel: (bytes) async => await FileSaver.saveFile('selected.xlsx', bytes),
+  onExportSelectedPdf:   (bytes) async => await FileSaver.saveFile('selected.pdf', bytes),
 )
 ```
 
@@ -406,6 +445,41 @@ TablexTheme(
   data: const TablexThemeData(showVerticalCellBorders: true),
   child: MyScreen(),
 )
+```
+
+### Selectable cell text
+
+On web, cell text is rendered with `SelectableText` by default so users can copy values by dragging. Disable it or opt in on desktop:
+
+```dart
+TablexThemeData(
+  enableTextSelection: false,  // disable on web
+  // enableTextSelection: true, // opt in on desktop
+)
+```
+
+Custom renderers can read `ctx.enableTextSelection` to follow the same setting:
+
+```dart
+cellRenderer: (row, value, ctx) => ctx.enableTextSelection
+    ? SelectableText(value, maxLines: 1)
+    : Text(value, overflow: TextOverflow.ellipsis),
+```
+
+### Empty cell placeholder
+
+Set a grid-wide placeholder for `null` cells without touching every column:
+
+```dart
+TablexThemeData(emptyCellPlaceholder: 'N/A')
+```
+
+Column-level `TablexColumnBase.emptyCellPlaceholder` takes precedence when set. The fallback chain is: column → theme → `'—'` (when `showEmptyAsDash`) → blank.
+
+### Selection summary bar colour
+
+```dart
+TablexThemeData(selectionSummaryBarColor: Colors.indigo.shade50)
 ```
 
 ---
