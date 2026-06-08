@@ -561,6 +561,7 @@ class _TablexState<T> extends State<Tablex<T>> with _TablexStateMixin<T> {
             includeClearAction: widget._includeClearSelectionAction,
             columns: widget._columns,
             controller: _controller,
+            selectionMode: widget._selectionMode,
             onExportSelectedCsv: widget._onExportSelectedCsv,
             onExportSelectedExcel: widget._onExportSelectedExcel,
             onExportSelectedPdf: widget._onExportSelectedPdf,
@@ -737,6 +738,7 @@ class _SelectionSummaryHeader<T> extends StatefulWidget {
     required this.onClear,
     required this.columns,
     required this.controller,
+    required this.selectionMode,
     this.actions,
     this.includeClearAction = true,
     this.onExportSelectedCsv,
@@ -751,6 +753,7 @@ class _SelectionSummaryHeader<T> extends StatefulWidget {
   final VoidCallback onClear;
   final List<TablexColumnBase<T>> columns;
   final TablexController<T> controller;
+  final TablexSelectionMode selectionMode;
   final List<TablexSelectionAction<T>>? actions;
   final bool includeClearAction;
 
@@ -832,8 +835,7 @@ class _SelectionSummaryHeaderState<T>
   }
 
   Future<void> _exportPdf() async {
-    final bytes =
-        await widget.controller.exportSelectedToPdf(widget.columns);
+    final bytes = await widget.controller.exportSelectedToPdf(widget.columns);
     if (widget.onExportSelectedPdf != null) {
       await widget.onExportSelectedPdf!(bytes);
       return;
@@ -845,6 +847,7 @@ class _SelectionSummaryHeaderState<T>
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final strings = tablexStrings(context);
+    final cb = widget.theme.checkboxTheme ?? const TablexCheckboxTheme();
 
     return Container(
       height: widget.density.headerHeight,
@@ -852,10 +855,42 @@ class _SelectionSummaryHeaderState<T>
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
+          if (widget.selectionMode == TablexSelectionMode.multiple) ...[
+            SizedBox(
+              width: cb.size,
+              height: cb.size,
+              child: Checkbox(
+                tristate: true,
+                value: widget.selectedCount > 0 &&
+                        widget.selectedCount == widget.controller.rows.length
+                    ? true
+                    : null,
+                onChanged: (_) {
+                  if (widget.selectedCount == widget.controller.rows.length) {
+                    widget.controller.clearSelection();
+                  } else {
+                    widget.controller
+                        .selectAll(widget.controller.getAllRowData());
+                  }
+                },
+                activeColor: cb.activeColor ?? cs.primary,
+                checkColor: cb.checkColor ?? cs.onPrimary,
+                side: BorderSide(
+                  color: cb.borderColor ?? cs.outlineVariant,
+                  width: cb.borderWidth,
+                ),
+                shape: cb.shape,
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
+          const SizedBox(width: 20),
           Text(
             strings.selected(widget.selectedCount),
             style: widget.theme.headerTextStyle?.copyWith(
-              color: cs.onPrimaryContainer,
+              color: cs.onSurfaceVariant,
             ),
           ),
           const Spacer(),
@@ -865,7 +900,7 @@ class _SelectionSummaryHeaderState<T>
                 icon: Icon(action.icon, size: 16),
                 label: Text(action.label),
                 style: TextButton.styleFrom(
-                  foregroundColor: cs.onPrimaryContainer,
+                  foregroundColor: cs.onSurfaceVariant,
                 ),
                 onPressed: () => action.onPressed(widget.selectedItems),
               ),
@@ -873,21 +908,21 @@ class _SelectionSummaryHeaderState<T>
           IconButton(
             icon: const Icon(Icons.download_outlined, size: 18),
             tooltip: 'Export selected as CSV',
-            color: cs.onPrimaryContainer,
+            color: cs.onSurfaceVariant,
             visualDensity: VisualDensity.compact,
             onPressed: _busy ? null : () => _run(_exportCsv),
           ),
           IconButton(
             icon: const Icon(Icons.table_chart_outlined, size: 18),
             tooltip: 'Export selected as Excel',
-            color: cs.onPrimaryContainer,
+            color: cs.onSurfaceVariant,
             visualDensity: VisualDensity.compact,
             onPressed: _busy ? null : () => _run(_exportExcel),
           ),
           IconButton(
             icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
             tooltip: 'Export selected as PDF',
-            color: cs.onPrimaryContainer,
+            color: cs.onSurfaceVariant,
             visualDensity: VisualDensity.compact,
             onPressed: _busy ? null : () => _run(_exportPdf),
           ),
@@ -899,7 +934,7 @@ class _SelectionSummaryHeaderState<T>
                 height: 14,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: cs.onPrimaryContainer,
+                  color: cs.onSurfaceVariant,
                 ),
               ),
             ),
@@ -907,7 +942,7 @@ class _SelectionSummaryHeaderState<T>
             IconButton(
               icon: const Icon(Icons.close, size: 18),
               tooltip: strings.clear,
-              color: cs.onPrimaryContainer,
+              color: cs.onSurfaceVariant,
               onPressed: widget.onClear,
             ),
         ],

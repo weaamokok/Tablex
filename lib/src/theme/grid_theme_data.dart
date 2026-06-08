@@ -25,7 +25,9 @@ class TablexCheckboxTheme {
     this.activeColor,
     this.checkColor,
     this.borderColor,
+    this.borderRadius,
     this.borderWidth = 1.5,
+    this.doubleBorder = false,
     this.shape,
     this.size = 20.0,
   });
@@ -45,6 +47,16 @@ class TablexCheckboxTheme {
   /// Stroke width of the unchecked border. Defaults to `1.5`.
   final double borderWidth;
 
+  /// Corner radius of the checkbox when [shape] is a [RoundedRectangleBorder].
+  /// Defaults to `3` px.
+  final double? borderRadius;
+
+  /// Whether to draw a second border when the checkbox is checked, using
+  /// [borderColor] and a stroke width of `borderWidth / 2`. This
+  /// is a common style in Material 3 designs to make the active state more
+  /// distinct, especially when [activeColor] is similar to the background color.
+  final bool doubleBorder;
+
   /// Shape of the checkbox widget. Defaults to a rounded rectangle with a
   /// 2 px corner radius (Material 3 default).
   final OutlinedBorder? shape;
@@ -61,6 +73,8 @@ class TablexCheckboxTheme {
       checkColor: checkColor ?? cs.onPrimary,
       borderColor: borderColor ?? cs.outlineVariant,
       borderWidth: borderWidth,
+      borderRadius: borderRadius,
+      doubleBorder: doubleBorder,
       shape: shape,
       size: size,
     );
@@ -72,6 +86,8 @@ class TablexCheckboxTheme {
     Color? checkColor,
     Color? borderColor,
     double? borderWidth,
+    double? borderRadius,
+    bool? doubleBorder,
     OutlinedBorder? shape,
     double? size,
   }) {
@@ -80,6 +96,8 @@ class TablexCheckboxTheme {
       checkColor: checkColor ?? this.checkColor,
       borderColor: borderColor ?? this.borderColor,
       borderWidth: borderWidth ?? this.borderWidth,
+      borderRadius: borderRadius ?? this.borderRadius,
+      doubleBorder: doubleBorder ?? this.doubleBorder,
       shape: shape ?? this.shape,
       size: size ?? this.size,
     );

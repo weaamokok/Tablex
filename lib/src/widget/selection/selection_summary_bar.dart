@@ -14,6 +14,8 @@ class TablexSelectionSummaryBar extends StatefulWidget {
     super.key,
     required this.count,
     required this.onClear,
+    this.totalCount,
+    this.onSelectAll,
     this.actions,
     this.onExportSelectedCsv,
     this.onExportSelectedExcel,
@@ -22,6 +24,15 @@ class TablexSelectionSummaryBar extends StatefulWidget {
 
   final int count;
   final VoidCallback onClear;
+
+  /// Total number of rows in the grid. Used to determine the tristate checkbox
+  /// value (all selected vs. some selected) when [onSelectAll] is provided.
+  final int? totalCount;
+
+  /// Called when the user taps the select-all checkbox to select all rows.
+  /// When non-null a tristate checkbox is shown at the leading edge of the bar.
+  /// Tapping when all rows are selected calls [onClear] instead.
+  final VoidCallback? onSelectAll;
 
   /// Extra action widgets rendered between the row count and the export buttons.
   final List<Widget>? actions;
@@ -61,6 +72,7 @@ class _TablexSelectionSummaryBarState extends State<TablexSelectionSummaryBar> {
     final resolvedTheme =
         (TablexTheme.maybeOf(context) ?? const TablexThemeData())
             .resolve(context);
+    final cb = resolvedTheme.checkboxTheme ?? const TablexCheckboxTheme();
     final hasExport = widget.onExportSelectedCsv != null ||
         widget.onExportSelectedExcel != null ||
         widget.onExportSelectedPdf != null;
@@ -70,6 +82,40 @@ class _TablexSelectionSummaryBarState extends State<TablexSelectionSummaryBar> {
       color: resolvedTheme.selectionSummaryBarColor,
       child: Row(
         children: [
+          if (widget.onSelectAll != null) ...[
+            SizedBox(
+              width: cb.size,
+              height: cb.size,
+              child: Checkbox(
+                tristate: true,
+                value: widget.totalCount != null &&
+                        widget.totalCount! > 0 &&
+                        widget.count == widget.totalCount
+                    ? true
+                    : null,
+                onChanged: (_) {
+                  if (widget.count == widget.totalCount) {
+                    widget.onClear();
+                  } else {
+                    widget.onSelectAll!();
+                  }
+                },
+                activeColor: cb.activeColor,
+                checkColor: cb.checkColor,
+                side: BorderSide(
+                  color: cb.borderColor ?? cs.outlineVariant,
+                  width: cb.borderWidth,
+                ),
+                shape: cb.shape,
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
+          const SizedBox(
+            width: 50,
+          ),
           Text(
             tablexStrings(context).selected(widget.count),
             style: TextStyle(

@@ -321,8 +321,8 @@ void _commitEdit<TRow>({
   required dynamic newValue,
 }) {
   controller.updateCell(rowIndex, field, newValue);
-  final col =
-      visible.firstWhere((c) => c.fieldKey == field, orElse: () => visible.first);
+  final col = visible.firstWhere((c) => c.fieldKey == field,
+      orElse: () => visible.first);
   col.handleEdit(rows[rowIndex].data, newValue);
   controller.confirmEdit(rowIndex, field);
 }
@@ -359,8 +359,7 @@ void _commitEdit<TRow>({
             : null,
     TablexEditDirection.arrowDown =>
       rowIndex < lastRow ? (rowIndex + 1, field) : null,
-    TablexEditDirection.arrowUp =>
-      rowIndex > 0 ? (rowIndex - 1, field) : null,
+    TablexEditDirection.arrowUp => rowIndex > 0 ? (rowIndex - 1, field) : null,
   };
 }
 
@@ -436,21 +435,34 @@ class _RowCheckbox extends StatelessWidget {
         color: bgColor,
         child: Center(
           child: IgnorePointer(
-            child: SizedBox(
-              width: cb.size,
-              height: cb.size,
-              child: Checkbox(
-                value: isSelected,
-                onChanged: (_) {},
-                activeColor: cb.activeColor ?? cs.primary,
-                checkColor: cb.checkColor ?? cs.onPrimary,
-                side: BorderSide(
-                  color: cb.borderColor ?? cs.outlineVariant,
-                  width: cb.borderWidth,
+            child: Container(
+              decoration: isSelected && cb.doubleBorder
+                  ? BoxDecoration(
+                      borderRadius: BorderRadius.circular(cb.borderRadius ?? 3),
+                      border: Border.all(
+                        width: 2,
+                        color: cb.activeColor ?? cs.primary,
+                      ),
+                      shape: BoxShape.rectangle,
+                    )
+                  : null,
+              padding: EdgeInsets.all(.5),
+              child: SizedBox(
+                width: cb.size,
+                height: cb.size,
+                child: Checkbox(
+                  value: isSelected,
+                  onChanged: (_) {},
+                  activeColor: cb.activeColor ?? cs.primary,
+                  checkColor: cb.checkColor ?? cs.onPrimary,
+                  side: BorderSide(
+                    color: cb.borderColor ?? cs.outlineVariant,
+                    width: cb.borderWidth,
+                  ),
+                  shape: cb.shape,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
                 ),
-                shape: cb.shape,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
               ),
             ),
           ),

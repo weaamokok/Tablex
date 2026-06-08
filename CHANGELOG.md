@@ -1,3 +1,21 @@
+## 0.5.2
+
+### New features
+
+* **Select-all / deselect-all checkbox in the selection summary bar** — in `multiple` selection mode a tristate `Checkbox` is shown at the leading edge of the bar. The checkbox is checked when every loaded row is selected, indeterminate when some are selected, and tapping it toggles between select-all and clear-selection. It follows the grid's `TablexCheckboxTheme` (active colour, check colour, border, shape, and size) for visual consistency with the row and header checkboxes.
+  * `_SelectionSummaryHeader` (inside `Tablex`) reads the checkbox theme from the resolved `TablexThemeData`.
+  * `TablexSelectionSummaryBar` (standalone widget) gains two new optional params — `totalCount` and `onSelectAll` — to opt into the same behaviour from outside the grid.
+  * `TablexConsumer` automatically wires `totalCount` and `onSelectAll` when `selectionMode` is `multiple`.
+
+### API additions
+
+| Symbol | Kind | Notes |
+|---|---|---|
+| `TablexSelectionSummaryBar.totalCount` | param | Total row count; determines the tristate checkbox value |
+| `TablexSelectionSummaryBar.onSelectAll` | param | Callback to select all rows; presence enables the checkbox |
+
+---
+
 ## 0.5.1
 
 ### Documentation

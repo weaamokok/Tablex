@@ -347,6 +347,12 @@ class _TablexConsumerState<T> extends State<TablexConsumer<T>> {
                     : TablexSelectionSummaryBar(
                         count: selectedCount,
                         onClear: _controller.clearSelection,
+                        totalCount: _controller.rows.length,
+                        onSelectAll: widget.selectionMode ==
+                                TablexSelectionMode.multiple
+                            ? () => _controller
+                                .selectAll(_controller.getAllRowData())
+                            : null,
                         actions: widget.selectionActions
                             ?.map(
                               (a) => TextButton.icon(
