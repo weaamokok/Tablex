@@ -890,7 +890,7 @@ class _SelectionSummaryHeaderState<T>
           Text(
             strings.selected(widget.selectedCount),
             style: widget.theme.headerTextStyle?.copyWith(
-              color: cs.onSurfaceVariant,
+              color: cs.onSurface,
             ),
           ),
           const Spacer(),
