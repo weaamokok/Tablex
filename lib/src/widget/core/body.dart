@@ -438,6 +438,7 @@ class _RowCheckbox extends StatelessWidget {
             child: Container(
               decoration: isSelected && cb.doubleBorder
                   ? BoxDecoration(
+                      color: Colors.transparent,
                       borderRadius: BorderRadius.circular(cb.borderRadius ?? 3),
                       border: Border.all(
                         width: 1,
@@ -446,7 +447,8 @@ class _RowCheckbox extends StatelessWidget {
                       shape: BoxShape.rectangle,
                     )
                   : null,
-              padding: EdgeInsets.all(.5),
+              width: cb.size + 5,
+              height: cb.size + 5,
               child: SizedBox(
                 width: cb.size,
                 height: cb.size,

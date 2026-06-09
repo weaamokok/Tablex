@@ -468,6 +468,7 @@ class _StaticGridScreenState extends State<_StaticGridScreen> {
                   checkboxTheme: TablexCheckboxTheme(
                       checkColor: Colors.white,
                       activeColor: Colors.blue,
+                      size: 16,
                       doubleBorder: true)),
               rowBuilder: _employeeRowBuilder,
               density: TablexDensity.comfortable,
