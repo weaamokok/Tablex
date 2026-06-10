@@ -97,7 +97,7 @@ class Employee {
     required this.email,
     required this.department,
     required this.salary,
-    required this.joinDate,
+    this.joinDate,
     required this.status,
     required this.isManager,
     this.avatarInitial = '',
@@ -108,7 +108,7 @@ class Employee {
   final String email;
   final String department;
   final num salary;
-  final DateTime joinDate;
+  final DateTime? joinDate;
   final EmployeeStatus status;
   final bool isManager;
   final String avatarInitial;
@@ -223,7 +223,7 @@ Employee _makeEmployee(int id, Random rng) {
     email: '${first.toLowerCase()}.${last.toLowerCase()}@corp.io',
     department: _departments[rng.nextInt(_departments.length)],
     salary: (50000 + rng.nextInt(100000).toDouble()),
-    joinDate: DateTime.now().subtract(Duration(days: rng.nextInt(3650))),
+    // joinDate: DateTime.now().subtract(Duration(days: rng.nextInt(3650))),
     status: EmployeeStatus.values[rng.nextInt(EmployeeStatus.values.length)],
     isManager: rng.nextBool(),
     avatarInitial: first[0],
@@ -317,10 +317,11 @@ List<TablexColumnBase<Employee>> _employeeColumns({
       valueGetter: (e) => e.salary,
       cellRenderer: TablexRenderers.currency(symbol: '\$'),
     ),
-    TablexColumn<Employee, DateTime>(
+    TablexColumn<Employee, DateTime?>(
       fieldKey: 'joinDate',
       title: 'Joined',
       width: 120,
+      hideIfEmpty: true,
       valueGetter: (e) => e.joinDate,
       cellRenderer: TablexRenderers.date(),
     ),
@@ -505,7 +506,13 @@ Future<TablexFetchResult<Employee>> _fakePagedFetch(
         'name' => a.name.compareTo(b.name),
         'department' => a.department.compareTo(b.department),
         'salary' => a.salary.compareTo(b.salary),
-        'joinDate' => a.joinDate.compareTo(b.joinDate),
+        'joinDate' => a.joinDate == null && b.joinDate == null
+            ? 0
+            : a.joinDate == null
+                ? -1
+                : b.joinDate == null
+                    ? 1
+                    : a.joinDate!.compareTo(b.joinDate!),
         _ => 0,
       };
       return asc ? cmp : -cmp;
@@ -975,7 +982,7 @@ class _ImportExportScreenState extends State<_ImportExportScreen> {
       cellRenderer: TablexRenderers.currency(symbol: '\$'),
       onEdit: (e, newSalary) => _applyEdit(e, e.copyWith(salary: newSalary)),
     ),
-    TablexColumn<Employee, DateTime>(
+    TablexColumn<Employee, DateTime?>(
       fieldKey: 'joinDate',
       title: 'Joined',
       width: 120,

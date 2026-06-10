@@ -1,3 +1,41 @@
+## 0.5.6
+
+### New features
+
+* **Per-column `hideIfEmpty` flag** — set `hideIfEmpty: true` on any `TablexColumn` to automatically hide that column when every loaded row has a null or empty value for it. The column reappears as soon as any row provides a non-empty value. Complements the existing grid-level `hideEmptyColumns` flag, which applies the same behaviour to all columns at once.
+
+* **`exportFormatter` on `TablexColumnBase`** — an optional `String Function(dynamic rawValue)` that overrides the default export string for CSV, Excel, and PDF. Use it when the stored cell value is a model object whose `toString()` is not suitable for export (e.g. `Car(name: 'X3')` → `'X3'`). Resolution order: `exportFormatter` → column `formatter` → `Enum.name` (automatic, no config needed) → `toString()`.
+
+### Bug fixes
+
+* **Column flicker with `hideEmptyColumns` / `hideIfEmpty` while paging** — columns no longer disappear and reappear as the user pages through data. Visibility is now computed from an accumulated `_seenNonEmptyFields` set that only ever grows within a session, so a column stays visible once it has been shown.
+
+* **Header / body column misalignment with `hideIfEmpty`** — `TablexBody` was reading `state.hiddenColumnFields` internally, bypassing the widget-level `hiddenFields` set (which includes the empty-column logic). The computed `hiddenFields` is now passed into `TablexBody` directly, keeping the header and body in sync.
+
+* **Action columns included in exports** — columns with `type: TablexColumnType.action` are now excluded from CSV, Excel, and PDF exports.
+
+* **Enum values exported with class prefix** — enum cell values (e.g. `EmployeeStatus.active`) are now exported as their short `.name` (`'active'`) automatically, with no column configuration required.
+
+* **Cell renderers now accept nullable values** — all built-in renderers (`text`, `currency`, `dateTime`, `boolean`, `statusChip`, `twoLine`, `avatarTwoLine`, `link`, `identifier`, `copyableText`) have been updated to accept `TValue?`. Renderers return `SizedBox.shrink()` for `null` values; the `boolean` renderer uses a tristate `Checkbox` for `null`.
+
+### Refactoring
+
+* **Split `tablex_widget.dart` into part files** — the 955-line file is now broken into three focused `part of` files:
+  * `_tablex_state.dart` — `_TablexState<T>` + `_InfiniteLoadingBar`
+  * `_selection_summary_header.dart` — `_SelectionSummaryHeader<T>` + `_SelectionSummaryHeaderState<T>`
+  * `_tablex_state_mixin.dart` — unchanged, already extracted
+  * `tablex_widget.dart` retains only the `_TablexVariant` enum and the `Tablex` widget declaration (~383 lines).
+
+* **Split `controller.dart` into part files** — the 692-line controller is now broken into five focused `part of` files:
+  * `_controller_rows.dart` — row CRUD (`replaceRows`, `appendRows`, `prependRows`, `removeRow*`, `clearRows`, `getRow*`, `rows`, `rowCount`)
+  * `_controller_query.dart` — query/pagination/sort/filter and loading/meta/error state
+  * `_controller_selection.dart` — selection (`selectRow`, `deselectRow`, `toggleRowSelection`, `selectAll`, `clearSelection`, `selectedRows`, `isSelected`)
+  * `_controller_columns.dart` — column visibility, width, order, frozen pinning, and inline editing
+  * `_controller_export.dart` — CSV/Excel/PDF import/export (unchanged)
+  * `controller.dart` retains only the class skeleton — fields, constructor, `_checkDisposed`, `_notify`, and `dispose` (~129 lines).
+
+---
+
 ## 0.5.5
 
 ### Documentation

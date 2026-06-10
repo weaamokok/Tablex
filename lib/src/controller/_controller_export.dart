@@ -141,8 +141,27 @@ extension TablexControllerExport<T> on TablexController<T> {
 
   List<TablexColumnBase<T>> _visibleColumns(List<TablexColumnBase<T>> columns) =>
       columns
-          .where((c) => !c.hide && !isColumnHidden(c.fieldKey))
+          .where((c) =>
+              !c.hide &&
+              !isColumnHidden(c.fieldKey) &&
+              c.type != TablexColumnType.action)
           .toList(growable: false);
+
+  /// Converts [raw] to a display string for export (CSV / Excel / PDF).
+  ///
+  /// Resolution order:
+  /// 1. [TablexColumnBase.exportFormatter] — explicit override.
+  /// 2. [TablexColumnBase.formatValueRaw] — uses the column's typed formatter.
+  /// 3. Enum `.name` — short name without the class prefix.
+  /// 4. [Object.toString] — final fallback.
+  String _exportString(TablexColumnBase<T> col, dynamic raw) {
+    if (raw == null) return '';
+    if (col.exportFormatter != null) return col.exportFormatter!(raw);
+    final fmt = col.formatValueRaw(raw);
+    if (fmt != null) return fmt;
+    if (raw is Enum) return raw.name;
+    return raw.toString();
+  }
 
   /// Returns the row keys for [items], preserving display order.
   List<String> _keysForItems(List<T> items) {
@@ -155,11 +174,9 @@ extension TablexControllerExport<T> on TablexController<T> {
     buffer.writeln(visible.map((c) => _csvCell(c.title)).join(','));
     for (final key in keys) {
       final row = _rowMap[key]!;
-      buffer.writeln(visible.map((col) {
-        final raw = row.cells[col.fieldKey];
-        return _csvCell(
-            raw == null ? '' : (col.formatValueRaw(raw) ?? raw.toString()));
-      }).join(','));
+      buffer.writeln(visible
+          .map((col) => _csvCell(_exportString(col, row.cells[col.fieldKey])))
+          .join(','));
     }
     return buffer.toString();
   }
@@ -182,7 +199,7 @@ extension TablexControllerExport<T> on TablexController<T> {
       sheet.appendRow(visible.map<CellValue>((col) {
         final raw = row.cells[col.fieldKey];
         if (raw == null) return TextCellValue('');
-        return _toCellValue(raw, col.formatValueRaw(raw));
+        return _toCellValue(raw, _exportString(col, raw));
       }).toList());
     }
     final encoded = workbook.encode();
@@ -197,10 +214,9 @@ extension TablexControllerExport<T> on TablexController<T> {
     final headers = visible.map((c) => c.title).toList();
     final rows = keys.map((key) {
       final row = _rowMap[key]!;
-      return visible.map((col) {
-        final raw = row.cells[col.fieldKey];
-        return raw == null ? '' : (col.formatValueRaw(raw) ?? raw.toString());
-      }).toList();
+      return visible
+          .map((col) => _exportString(col, row.cells[col.fieldKey]))
+          .toList();
     }).toList();
 
     final isNumericCol = visible

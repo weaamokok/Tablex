@@ -15,6 +15,7 @@ abstract class TablexColumnBase<TRow> {
     this.minWidth = 100,
     this.frozen = TablexColumnFrozen.none,
     this.hide = false,
+    this.hideIfEmpty = false,
     this.enableSorting = true,
     this.enableFiltering = true,
     this.enableEditing = false,
@@ -25,6 +26,7 @@ abstract class TablexColumnBase<TRow> {
     this.showEmptyAsDash = true,
     this.type = TablexColumnType.text,
     this.footerRenderer,
+    this.exportFormatter,
   });
 
   /// Unique key that identifies this column and maps to a key in
@@ -47,6 +49,16 @@ abstract class TablexColumnBase<TRow> {
   /// Set to `true` to hide the column from the grid by default. Users can
   /// still reveal it via [TablexColumnManagerButton].
   final bool hide;
+
+  /// Set to `true` to automatically hide this column when every loaded row has
+  /// a null or empty value for it. The column reappears as soon as any row
+  /// provides a non-empty value and stays visible for the rest of the session —
+  /// preventing the flickering that occurs when hiding is re-evaluated on every
+  /// page load.
+  ///
+  /// The grid-level [Tablex.hideEmptyColumns] flag applies the same behaviour
+  /// to all columns at once; [hideIfEmpty] lets you opt individual columns in.
+  final bool hideIfEmpty;
 
   /// Whether the user can sort by this column. Defaults to `true`.
   final bool enableSorting;
@@ -80,6 +92,21 @@ abstract class TablexColumnBase<TRow> {
   /// Optional footer cell renderer. Receives aggregated row data so you can
   /// render sums, averages, or other column-level stats.
   final Widget Function(TablexFooterContext<dynamic> context)? footerRenderer;
+
+  /// Optional formatter used when exporting this column to CSV, Excel, or PDF.
+  ///
+  /// Called with the raw cell value (the same value stored in [TablexRow.cells])
+  /// and must return a human-readable string. Use this when the stored value is
+  /// a model object whose [toString] output is not suitable for export (e.g.
+  /// `Car(name: 'X3')` → `'X3'`).
+  ///
+  /// Resolution order:
+  /// 1. [exportFormatter] — if provided, its result is always used.
+  /// 2. [TablexColumn.formatter] — used when no [exportFormatter] is set.
+  /// 3. Enum `.name` — for [Enum] values, the short name is used automatically
+  ///    (e.g. `EmployeeStatus.active` → `'active'`).
+  /// 4. [Object.toString] — final fallback.
+  final String Function(dynamic rawValue)? exportFormatter;
 
   /// The dash (or custom placeholder) rendered for empty cells.
   String get effectivePlaceholder => emptyCellPlaceholder ?? '—';
@@ -148,6 +175,7 @@ class TablexColumn<TRow, TValue> extends TablexColumnBase<TRow> {
     super.minWidth = 100,
     super.frozen = TablexColumnFrozen.none,
     super.hide = false,
+    super.hideIfEmpty = false,
     super.enableSorting = true,
     super.enableFiltering = true,
     super.enableEditing = false,
@@ -158,18 +186,20 @@ class TablexColumn<TRow, TValue> extends TablexColumnBase<TRow> {
     super.showEmptyAsDash = true,
     super.type = TablexColumnType.text,
     super.footerRenderer,
+    super.exportFormatter,
   });
 
   /// Extracts the typed value from a row object.
   final TValue Function(TRow row) valueGetter;
 
-  /// Optional custom cell widget. Receives the full row, the typed value, and
-  /// a [TablexCellContext] with layout/state metadata. Return `null` to fall
-  /// back to the default text renderer.
+  /// Optional custom cell widget. Receives the full row, the typed value (which
+  /// may be `null` when the backend omits the field), and a [TablexCellContext]
+  /// with layout/state metadata. Return `null` to fall back to the default text
+  /// renderer.
   ///
   /// Use [TablexRenderers] for ready-made renderers (currency, status chip,
   /// identifier, actions, …).
-  final Widget Function(TRow row, TValue value, TablexCellContext context)?
+  final Widget Function(TRow row, TValue? value, TablexCellContext context)?
       cellRenderer;
 
   /// Optional value-to-string formatter used when no [cellRenderer] is set.

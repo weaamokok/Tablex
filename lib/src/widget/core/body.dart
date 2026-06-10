@@ -24,6 +24,7 @@ class TablexBody<TRow> extends StatelessWidget {
     required this.selectionMode,
     required this.verticalScrollController,
     required this.horizontalScrollController,
+    required this.hiddenFields,
     this.onRowTap,
     this.onRowDoubleTap,
     this.onSelectionChanged,
@@ -37,6 +38,7 @@ class TablexBody<TRow> extends StatelessWidget {
   final TablexSelectionMode selectionMode;
   final ScrollController verticalScrollController;
   final ScrollController horizontalScrollController;
+  final Set<String> hiddenFields;
   final void Function(TRow)? onRowTap;
   final void Function(TRow)? onRowDoubleTap;
   final void Function(List<TRow>)? onSelectionChanged;
@@ -62,7 +64,6 @@ class TablexBody<TRow> extends StatelessWidget {
         }
 
         final state = controller.state;
-        final hiddenFields = state.hiddenColumnFields;
         final columnWidths = state.columnWidths;
         final visible = columns
             .where((c) => !c.hide && !hiddenFields.contains(c.fieldKey))

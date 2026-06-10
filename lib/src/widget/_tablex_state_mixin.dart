@@ -31,6 +31,12 @@ mixin _TablexStateMixin<T> on State<Tablex<T>> {
   // generation abort when they resolve instead of mutating stale state.
   int _fetchGeneration = 0;
 
+  // Accumulates fieldKeys that have had at least one non-null/non-empty value
+  // across any loaded page. Used by hideEmptyColumns / hideIfEmpty to avoid
+  // flickering as pages turn — a column stays visible once it has been seen
+  // with data, instead of being re-evaluated against the current page only.
+  final Set<String> _seenNonEmptyFields = {};
+
   // ---------------------------------------------------------------------------
   // Scroll sync
   // ---------------------------------------------------------------------------
@@ -90,7 +96,24 @@ mixin _TablexStateMixin<T> on State<Tablex<T>> {
   }
 
   void _onControllerChanged() {
+    _updateSeenNonEmptyFields();
     if (mounted) setState(() {});
+  }
+
+  void _updateSeenNonEmptyFields() {
+    final needsTracking = widget._hideEmptyColumns ||
+        widget._columns.any((c) => c.hideIfEmpty);
+    if (!needsTracking) return;
+    for (final row in _controller.rows) {
+      for (final col in widget._columns) {
+        if (_seenNonEmptyFields.contains(col.fieldKey)) continue;
+        if (!widget._hideEmptyColumns && !col.hideIfEmpty) continue;
+        final v = row.cells[col.fieldKey];
+        if (v != null && v.toString().isNotEmpty) {
+          _seenNonEmptyFields.add(col.fieldKey);
+        }
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------

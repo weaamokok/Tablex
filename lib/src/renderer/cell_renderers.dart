@@ -73,20 +73,24 @@ class TablexRenderers {
   /// Plain text cell with optional colour and style overrides.
   ///
   /// The value is truncated with an ellipsis when it overflows the column width.
-  static Widget Function(TRow, String, TablexCellContext) text<TRow>({
+  /// A `null` value renders as an empty cell.
+  static Widget Function(TRow, String?, TablexCellContext) text<TRow>({
     Color? color,
     TextStyle? style,
     TextAlign? align,
   }) =>
-      (row, value, ctx) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: _cellText(
-              value,
-              selectable: ctx.enableTextSelection,
-              textAlign: align ?? _toTextAlign(ctx),
-              style: style?.copyWith(color: color) ?? TextStyle(color: color),
-            ),
-          );
+      (row, value, ctx) {
+        if (value == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: _cellText(
+            value,
+            selectable: ctx.enableTextSelection,
+            textAlign: align ?? _toTextAlign(ctx),
+            style: style?.copyWith(color: color) ?? TextStyle(color: color),
+          ),
+        );
+      };
 
   // ---------------------------------------------------------------------------
   // Currency
@@ -97,21 +101,25 @@ class TablexRenderers {
   /// Positive values use [positiveColor] (defaults to the theme's tertiary
   /// colour); negative values use [negativeColor] (defaults to theme error).
   /// Numbers are right-aligned with tabular figures for clean column alignment.
-  static Widget Function(TRow, num, TablexCellContext) currency<TRow>({
+  /// A `null` value renders as an empty cell.
+  static Widget Function(TRow, num?, TablexCellContext) currency<TRow>({
     Color? positiveColor,
     Color? negativeColor,
     String symbol = '\$',
     int decimalDigits = 2,
   }) =>
-      (row, value, ctx) => _CurrencyCell<TRow>(
-            row: row,
-            value: value,
-            ctx: ctx,
-            positiveColor: positiveColor,
-            negativeColor: negativeColor,
-            symbol: symbol,
-            decimalDigits: decimalDigits,
-          );
+      (row, value, ctx) {
+        if (value == null) return const SizedBox.shrink();
+        return _CurrencyCell<TRow>(
+          row: row,
+          value: value,
+          ctx: ctx,
+          positiveColor: positiveColor,
+          negativeColor: negativeColor,
+          symbol: symbol,
+          decimalDigits: decimalDigits,
+        );
+      };
 
   // ---------------------------------------------------------------------------
   // Date
@@ -121,19 +129,25 @@ class TablexRenderers {
   ///
   /// [format] follows `package:intl` pattern syntax.
   /// Default: `'dd MMM yyyy'` → `'21 May 2026'`.
-  static Widget Function(TRow, DateTime, TablexCellContext) date<TRow>({
+  static Widget Function(TRow, DateTime?, TablexCellContext) date<TRow>({
     String format = 'dd MMM yyyy',
-  }) =>
-      (row, value, ctx) => Align(
-            alignment: AlignmentGeometry.center,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: _cellText(
-                intl.DateFormat(format).format(value),
-                selectable: ctx.enableTextSelection,
-              ),
-            ),
-          );
+  }) {
+    return (row, value, ctx) {
+      if (value == null) {
+        return const SizedBox.shrink();
+      }
+      return Align(
+        alignment: AlignmentGeometry.center,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: _cellText(
+            intl.DateFormat(format).format(value),
+            selectable: ctx.enableTextSelection,
+          ),
+        ),
+      );
+    };
+  }
 
   // ---------------------------------------------------------------------------
   // DateTime
@@ -143,30 +157,38 @@ class TablexRenderers {
   ///
   /// [format] follows `package:intl` pattern syntax.
   /// Default: `'dd MMM yyyy HH:mm'` → `'21 May 2026 14:30'`.
-  static Widget Function(TRow, DateTime, TablexCellContext) dateTime<TRow>({
+  /// A `null` value renders as an empty cell.
+  static Widget Function(TRow, DateTime?, TablexCellContext) dateTime<TRow>({
     String format = 'dd MMM yyyy HH:mm',
   }) =>
-      (row, value, ctx) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: _cellText(
-              intl.DateFormat(format).format(value),
-              selectable: ctx.enableTextSelection,
-            ),
-          );
+      (row, value, ctx) {
+        if (value == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: _cellText(
+            intl.DateFormat(format).format(value),
+            selectable: ctx.enableTextSelection,
+          ),
+        );
+      };
 
   // ---------------------------------------------------------------------------
   // Boolean
   // ---------------------------------------------------------------------------
 
   /// A read-only [Checkbox]. Pass [onChanged] to make it interactive.
-  static Widget Function(TRow, bool, TablexCellContext) boolean<TRow>({
+  ///
+  /// A `null` value renders as an indeterminate (tristate) checkbox.
+  static Widget Function(TRow, bool?, TablexCellContext) boolean<TRow>({
     void Function(bool)? onChanged,
   }) =>
       (row, value, ctx) => Center(
             child: Checkbox(
+              tristate: true,
               value: value,
-              onChanged:
-                  onChanged == null ? null : (v) => onChanged(v ?? value),
+              onChanged: onChanged == null
+                  ? null
+                  : (v) => onChanged(v ?? false),
               visualDensity: VisualDensity.compact,
             ),
           );
@@ -193,13 +215,14 @@ class TablexRenderers {
   ///   },
   /// )
   /// ```
-  static Widget Function(TRow, K, TablexCellContext) statusChip<TRow, K>({
+  static Widget Function(TRow, K?, TablexCellContext) statusChip<TRow, K>({
     required Map<K, Color> colors,
     Map<K, String>? labels,
     BorderRadiusGeometry? radius,
     BoxBorder? border,
   }) =>
       (row, value, ctx) {
+        if (value == null) return const SizedBox.shrink();
         final color = colors[value] ?? Colors.grey;
         final label = labels?[value] ?? value.toString();
         return Center(
@@ -261,22 +284,25 @@ class TablexRenderers {
   ///
   /// Unlike [identifier], this renderer shows the copy affordance only on
   /// long-press / right-click and does not display a copy icon on hover.
-  static Widget Function(TRow, String, TablexCellContext) copyableText<TRow>({
+  static Widget Function(TRow, String?, TablexCellContext) copyableText<TRow>({
     Color? color,
     TextStyle? style,
   }) =>
-      (row, value, ctx) => GestureDetector(
-            onLongPress: () => Clipboard.setData(ClipboardData(text: value)),
-            onSecondaryTap: () => Clipboard.setData(ClipboardData(text: value)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: SelectableText(
-                value,
-                style: style?.copyWith(color: color) ?? TextStyle(color: color),
-                maxLines: 1,
-              ),
+      (row, value, ctx) {
+        if (value == null) return const SizedBox.shrink();
+        return GestureDetector(
+          onLongPress: () => Clipboard.setData(ClipboardData(text: value)),
+          onSecondaryTap: () => Clipboard.setData(ClipboardData(text: value)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: SelectableText(
+              value,
+              style: style?.copyWith(color: color) ?? TextStyle(color: color),
+              maxLines: 1,
             ),
-          );
+          ),
+        );
+      };
 
   // ---------------------------------------------------------------------------
   // Two-line
@@ -286,7 +312,8 @@ class TablexRenderers {
   ///
   /// Requires [TablexDensity.comfortable] or [TablexDensity.standard] to
   /// have enough vertical space for both lines.
-  static Widget Function(TRow, String, TablexCellContext) twoLine<TRow>({
+  /// A `null` primary value renders as an empty string.
+  static Widget Function(TRow, String?, TablexCellContext) twoLine<TRow>({
     required String Function(TRow) secondLine,
     TextStyle? secondLineStyle,
   }) =>
@@ -297,7 +324,7 @@ class TablexRenderers {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _cellText(
-                  value,
+                  value ?? '',
                   selectable: ctx.enableTextSelection,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
@@ -321,12 +348,14 @@ class TablexRenderers {
   /// or `null` to fall back to the first letter of the primary value.
   ///
   /// Requires [TablexDensity.comfortable] for sufficient row height.
-  static Widget Function(TRow, String, TablexCellContext) avatarTwoLine<TRow>({
+  static Widget Function(TRow, String?, TablexCellContext) avatarTwoLine<TRow>({
     required String Function(TRow) secondLine,
     required ImageProvider? Function(TRow) avatar,
   }) =>
       (row, value, ctx) {
         final img = avatar(row);
+        final initial =
+            (value != null && value.isNotEmpty) ? value[0].toUpperCase() : '?';
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
@@ -335,10 +364,7 @@ class TablexRenderers {
                 radius: 16,
                 backgroundImage: img,
                 child: img == null
-                    ? Text(
-                        value.isNotEmpty ? value[0].toUpperCase() : '?',
-                        style: const TextStyle(fontSize: 14),
-                      )
+                    ? Text(initial, style: const TextStyle(fontSize: 14))
                     : null,
               ),
               const SizedBox(width: 8),
@@ -348,7 +374,7 @@ class TablexRenderers {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _cellText(
-                      value,
+                      value ?? '',
                       selectable: ctx.enableTextSelection,
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
@@ -373,16 +399,14 @@ class TablexRenderers {
   ///
   /// [onTap] receives the full row object so you can navigate or open a detail
   /// sheet with all available data.
-  static Widget Function(TRow, String, TablexCellContext) link<TRow>({
+  static Widget Function(TRow, String?, TablexCellContext) link<TRow>({
     required void Function(TRow) onTap,
     Color? color,
   }) =>
-      (row, value, ctx) => _LinkCell<TRow>(
-            row: row,
-            value: value,
-            onTap: onTap,
-            color: color,
-          );
+      (row, value, ctx) {
+        if (value == null) return const SizedBox.shrink();
+        return _LinkCell<TRow>(row: row, value: value, onTap: onTap, color: color);
+      };
 
   // ---------------------------------------------------------------------------
   // Identifier — monospace, full value, tap to copy
@@ -406,15 +430,14 @@ class TablexRenderers {
   ///   cellRenderer: TablexRenderers.identifier(),
   /// )
   /// ```
-  static Widget Function(TRow, String, TablexCellContext) identifier<TRow>({
+  static Widget Function(TRow, String?, TablexCellContext) identifier<TRow>({
     Color? color,
     TextStyle? style,
   }) =>
-      (row, value, ctx) => _IdentifierCell<TRow>(
-            value: value,
-            color: color,
-            style: style,
-          );
+      (row, value, ctx) {
+        if (value == null) return const SizedBox.shrink();
+        return _IdentifierCell<TRow>(value: value, color: color, style: style);
+      };
 
   // ---------------------------------------------------------------------------
   // Helpers
