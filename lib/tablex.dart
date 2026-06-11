@@ -11,6 +11,7 @@ export 'src/model/response.dart';
 // Controller
 export 'src/controller/state.dart';
 export 'src/controller/controller.dart';
+export 'src/controller/pdf_config.dart';
 
 // Theme
 export 'src/theme/grid_theme_data.dart'

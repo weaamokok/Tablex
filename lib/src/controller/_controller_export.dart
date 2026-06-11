@@ -210,8 +210,9 @@ extension TablexControllerExport<T> on TablexController<T> {
 
   Future<Uint8List> _buildPdf(
     List<TablexColumnBase<T>> visible,
-    List<String> keys,
-  ) async {
+    List<String> keys, {
+    TablexPdfConfig config = const TablexPdfConfig(),
+  }) async {
     final headers = visible.map((c) => c.title).toList();
     final rows = keys.map((key) {
       final row = _rowMap[key]!;
@@ -230,33 +231,45 @@ extension TablexControllerExport<T> on TablexController<T> {
     final pageFormat =
         visible.length > 6 ? PdfPageFormat.a4.landscape : PdfPageFormat.a4;
 
+    // Flip numeric alignment when RTL so numbers still sit on the right
+    // edge of their cell (which is the start edge in RTL layouts).
+    final isRtl = config.textDirection == pw.TextDirection.rtl;
+
     doc.addPage(
       pw.MultiPage(
         pageFormat: pageFormat,
         margin: const pw.EdgeInsets.all(32),
         build: (_) => [
-          pw.TableHelper.fromTextArray(
-            headers: headers,
-            data: rows,
-            headerStyle: pw.TextStyle(
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.white,
-              fontSize: 9,
-            ),
-            headerDecoration:
-                const pw.BoxDecoration(color: PdfColors.blueGrey800),
-            cellStyle: const pw.TextStyle(fontSize: 8),
-            oddRowDecoration:
-                const pw.BoxDecoration(color: PdfColors.grey100),
-            cellAlignments: {
-              for (int i = 0; i < visible.length; i++)
-                i: isNumericCol[i]
-                    ? pw.Alignment.centerRight
-                    : pw.Alignment.centerLeft,
-            },
-            border: pw.TableBorder.all(
-              color: PdfColors.grey300,
-              width: 0.5,
+          pw.Directionality(
+            textDirection: config.textDirection,
+            child: pw.TableHelper.fromTextArray(
+              headers: headers,
+              data: rows,
+              headerStyle: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.white,
+                fontSize: 9,
+                font: config.fontBold ?? config.font,
+              ),
+              headerDecoration:
+                  const pw.BoxDecoration(color: PdfColors.blueGrey800),
+              cellStyle: pw.TextStyle(fontSize: 8, font: config.font),
+              oddRowDecoration:
+                  const pw.BoxDecoration(color: PdfColors.grey100),
+              cellAlignments: {
+                for (int i = 0; i < visible.length; i++)
+                  i: isNumericCol[i]
+                      ? (isRtl
+                          ? pw.Alignment.centerLeft
+                          : pw.Alignment.centerRight)
+                      : (isRtl
+                          ? pw.Alignment.centerRight
+                          : pw.Alignment.centerLeft),
+              },
+              border: pw.TableBorder.all(
+                color: PdfColors.grey300,
+                width: 0.5,
+              ),
             ),
           ),
         ],
@@ -384,19 +397,37 @@ extension TablexControllerExport<T> on TablexController<T> {
   ///
   /// Only visible (non-hidden) columns are included. The page is automatically
   /// switched to landscape when more than six columns are visible.
-  Future<Uint8List> exportToPdf(List<TablexColumnBase<T>> columns) async {
+  ///
+  /// Pass [pdfConfig] to override the controller's stored [TablexController.pdfConfig]
+  /// for this call only. Omit it to use the controller-level config (the common case).
+  Future<Uint8List> exportToPdf(
+    List<TablexColumnBase<T>> columns, {
+    TablexPdfConfig? pdfConfig,
+  }) async {
     _checkDisposed();
-    return _buildPdf(_visibleColumns(columns), _rowOrder);
+    return _buildPdf(
+      _visibleColumns(columns),
+      _rowOrder,
+      config: pdfConfig ?? this.pdfConfig,
+    );
   }
 
   /// Serialises only the **currently selected rows** to a PDF byte array.
   ///
   /// Returns a header-only PDF when no rows are selected.
+  ///
+  /// Pass [pdfConfig] to override the controller's stored [TablexController.pdfConfig]
+  /// for this call only. Omit it to use the controller-level config (the common case).
   Future<Uint8List> exportSelectedToPdf(
-      List<TablexColumnBase<T>> columns) async {
+    List<TablexColumnBase<T>> columns, {
+    TablexPdfConfig? pdfConfig,
+  }) async {
     _checkDisposed();
     return _buildPdf(
-        _visibleColumns(columns), _keysForItems(_state.selectedRows));
+      _visibleColumns(columns),
+      _keysForItems(_state.selectedRows),
+      config: pdfConfig ?? this.pdfConfig,
+    );
   }
 
   /// Imports rows from an Excel (.xlsx) byte array.

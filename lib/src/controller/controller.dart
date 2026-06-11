@@ -9,6 +9,7 @@ import '../model/query.dart';
 import '../model/response.dart';
 import '../model/row.dart';
 import 'state.dart';
+import 'pdf_config.dart';
 
 part '_controller_rows.dart';
 part '_controller_query.dart';
@@ -52,6 +53,7 @@ class TablexController<T> extends ChangeNotifier {
   TablexController({
     TablexQuery initialQuery = const TablexQuery(),
     TablexSelectionMode selectionMode = TablexSelectionMode.none,
+    this.pdfConfig = const TablexPdfConfig(),
   })  : _selectionMode = selectionMode,
         _state = TablexState<T>(query: initialQuery);
 
@@ -65,6 +67,19 @@ class TablexController<T> extends ChangeNotifier {
   /// common operations; read [state] directly only when you need multiple
   /// fields from the same snapshot.
   TablexState<T> get state => _state;
+
+  /// PDF export configuration (font, text direction) used by [exportToPdf]
+  /// and [exportSelectedToPdf]. Set once on the controller so every export
+  /// path — including toolbar buttons — picks it up automatically.
+  ///
+  /// ```dart
+  /// controller.pdfConfig = TablexPdfConfig(
+  ///   font: pw.Font.ttf(await rootBundle.load('assets/fonts/Cairo-Regular.ttf')),
+  ///   fontBold: pw.Font.ttf(await rootBundle.load('assets/fonts/Cairo-Bold.ttf')),
+  ///   textDirection: pw.TextDirection.rtl,
+  /// );
+  /// ```
+  TablexPdfConfig pdfConfig;
 
   bool _disposed = false;
   bool _pendingNotify = false;

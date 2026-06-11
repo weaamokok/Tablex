@@ -1,3 +1,25 @@
+## 0.5.8
+
+### New features
+
+* **`TablexPdfConfig` — custom font and RTL support for PDF exports** — PDF exports no longer require passing font configuration on every call. Set `controller.pdfConfig` once (or pass it to the `TablexController` constructor) and all export paths — including toolbar buttons — pick it up automatically. The per-call `pdfConfig` parameter on `exportToPdf` / `exportSelectedToPdf` remains available for one-off overrides.
+  * `font` — a `pw.Font` loaded from your app's assets; required for any non-Latin script (Arabic, Hebrew, CJK, etc.) since the built-in PDF fonts only cover Latin characters.
+  * `fontBold` — optional bold variant used for column headers; falls back to `font` when `null`.
+  * `textDirection` — set to `pw.TextDirection.rtl` for Arabic, Hebrew, or other right-to-left scripts. Numeric column alignment is flipped automatically when RTL is active.
+
+  ```dart
+  final font = pw.Font.ttf(await rootBundle.load('assets/fonts/Cairo-Regular.ttf'));
+  final bold = pw.Font.ttf(await rootBundle.load('assets/fonts/Cairo-Bold.ttf'));
+
+  controller.pdfConfig = TablexPdfConfig(
+    font: font,
+    fontBold: bold,
+    textDirection: pw.TextDirection.rtl,
+  );
+  ```
+
+---
+
 ## 0.5.7
 
 ### Breaking changes
