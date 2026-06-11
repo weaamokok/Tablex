@@ -30,19 +30,16 @@
 
 ### New features
 
-* **`TablexPdfConfig` — custom font and RTL support for PDF exports** — PDF exports no longer require passing font configuration on every call. Set `controller.pdfConfig` once (or pass it to the `TablexController` constructor) and all export paths — including toolbar buttons — pick it up automatically. The per-call `pdfConfig` parameter on `exportToPdf` / `exportSelectedToPdf` remains available for one-off overrides.
-  * `font` — a `pw.Font` loaded from your app's assets; required for any non-Latin script (Arabic, Hebrew, CJK, etc.) since the built-in PDF fonts only cover Latin characters.
-  * `fontBold` — optional bold variant used for column headers; falls back to `font` when `null`.
-  * `textDirection` — set to `pw.TextDirection.rtl` for Arabic, Hebrew, or other right-to-left scripts. Numeric column alignment is flipped automatically when RTL is active.
+* **`TablexPdfConfig` — custom font and RTL support for PDF exports** — the built-in PDF fonts (Helvetica / Times) only cover Latin characters; non-Latin scripts (Arabic, Hebrew, CJK, etc.) require a font that includes the relevant glyphs. `TablexPdfConfig` accepts raw `ByteData` from `rootBundle.load()` so no `pdf` package import is needed. Set it once on the controller and all export paths — including toolbar buttons — use it automatically. The per-call `pdfConfig` parameter on `exportToPdf` / `exportSelectedToPdf` is available for one-off overrides.
+  * `fontData` (`ByteData?`) — TTF font for cell content.
+  * `fontBoldData` (`ByteData?`) — TTF font for column headers; falls back to `fontData` when `null`.
+  * `rtl` (`bool`) — set to `true` for right-to-left scripts. Text direction and numeric column alignment are adjusted automatically.
 
   ```dart
-  final font = pw.Font.ttf(await rootBundle.load('assets/fonts/Cairo-Regular.ttf'));
-  final bold = pw.Font.ttf(await rootBundle.load('assets/fonts/Cairo-Bold.ttf'));
-
   controller.pdfConfig = TablexPdfConfig(
-    font: font,
-    fontBold: bold,
-    textDirection: pw.TextDirection.rtl,
+    fontData: await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
+    fontBoldData: await rootBundle.load('assets/fonts/Cairo-Bold.ttf'),
+    rtl: true,
   );
   ```
 
