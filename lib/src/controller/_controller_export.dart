@@ -147,16 +147,16 @@ extension TablexControllerExport<T> on TablexController<T> {
               c.type != TablexColumnType.action)
           .toList(growable: false);
 
-  /// Converts [raw] to a display string for export (CSV / Excel / PDF).
+  /// Converts a cell to a display string for export (CSV / Excel / PDF).
   ///
   /// Resolution order:
-  /// 1. [TablexColumnBase.exportFormatter] — explicit override.
+  /// 1. [TablexColumnBase.exportFormatter] — called with the typed row object.
   /// 2. [TablexColumnBase.formatValueRaw] — uses the column's typed formatter.
   /// 3. Enum `.name` — short name without the class prefix.
   /// 4. [Object.toString] — final fallback.
-  String _exportString(TablexColumnBase<T> col, dynamic raw) {
+  String _exportString(TablexColumnBase<T> col, T rowData, dynamic raw) {
     if (raw == null) return '';
-    if (col.exportFormatter != null) return col.exportFormatter!(raw);
+    if (col.exportFormatter != null) return col.exportFormatter!(rowData);
     final fmt = col.formatValueRaw(raw);
     if (fmt != null) return fmt;
     if (raw is Enum) return raw.name;
@@ -175,7 +175,8 @@ extension TablexControllerExport<T> on TablexController<T> {
     for (final key in keys) {
       final row = _rowMap[key]!;
       buffer.writeln(visible
-          .map((col) => _csvCell(_exportString(col, row.cells[col.fieldKey])))
+          .map((col) =>
+              _csvCell(_exportString(col, row.data, row.cells[col.fieldKey])))
           .join(','));
     }
     return buffer.toString();
@@ -199,7 +200,7 @@ extension TablexControllerExport<T> on TablexController<T> {
       sheet.appendRow(visible.map<CellValue>((col) {
         final raw = row.cells[col.fieldKey];
         if (raw == null) return TextCellValue('');
-        return _toCellValue(raw, _exportString(col, raw));
+        return _toCellValue(raw, _exportString(col, row.data, raw));
       }).toList());
     }
     final encoded = workbook.encode();
@@ -215,7 +216,7 @@ extension TablexControllerExport<T> on TablexController<T> {
     final rows = keys.map((key) {
       final row = _rowMap[key]!;
       return visible
-          .map((col) => _exportString(col, row.cells[col.fieldKey]))
+          .map((col) => _exportString(col, row.data, row.cells[col.fieldKey]))
           .toList();
     }).toList();
 

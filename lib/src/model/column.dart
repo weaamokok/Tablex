@@ -95,10 +95,14 @@ abstract class TablexColumnBase<TRow> {
 
   /// Optional formatter used when exporting this column to CSV, Excel, or PDF.
   ///
-  /// Called with the raw cell value (the same value stored in [TablexRow.cells])
-  /// and must return a human-readable string. Use this when the stored value is
-  /// a model object whose [toString] output is not suitable for export (e.g.
-  /// `Car(name: 'X3')` → `'X3'`).
+  /// Receives the full typed row object, giving access to all fields — not just
+  /// this column's raw cell value. Use this when the default resolution chain
+  /// does not produce the desired string (e.g. a nested model, a computed label,
+  /// or a value derived from multiple fields).
+  ///
+  /// ```dart
+  /// exportFormatter: (employee) => '${employee.firstName} ${employee.lastName}',
+  /// ```
   ///
   /// Resolution order:
   /// 1. [exportFormatter] — if provided, its result is always used.
@@ -106,7 +110,7 @@ abstract class TablexColumnBase<TRow> {
   /// 3. Enum `.name` — for [Enum] values, the short name is used automatically
   ///    (e.g. `EmployeeStatus.active` → `'active'`).
   /// 4. [Object.toString] — final fallback.
-  final String Function(dynamic rawValue)? exportFormatter;
+  final String Function(TRow row)? exportFormatter;
 
   /// The dash (or custom placeholder) rendered for empty cells.
   String get effectivePlaceholder => emptyCellPlaceholder ?? '—';

@@ -1,10 +1,18 @@
+## 0.5.7
+
+### Breaking changes
+
+* **`exportFormatter` signature changed from `dynamic` to `TRow`** — the type of `TablexColumnBase.exportFormatter` has changed from `String Function(dynamic rawValue)?` to `String Function(TRow row)?`. This gives full access to the typed row object rather than just the raw cell value, enabling export strings derived from multiple fields or computed values. Update any existing `exportFormatter` callbacks to accept the row type instead of `dynamic`.
+
+---
+
 ## 0.5.6
 
 ### New features
 
 * **Per-column `hideIfEmpty` flag** — set `hideIfEmpty: true` on any `TablexColumn` to automatically hide that column when every loaded row has a null or empty value for it. The column reappears as soon as any row provides a non-empty value. Complements the existing grid-level `hideEmptyColumns` flag, which applies the same behaviour to all columns at once.
 
-* **`exportFormatter` on `TablexColumnBase`** — an optional `String Function(dynamic rawValue)` that overrides the default export string for CSV, Excel, and PDF. Use it when the stored cell value is a model object whose `toString()` is not suitable for export (e.g. `Car(name: 'X3')` → `'X3'`). Resolution order: `exportFormatter` → column `formatter` → `Enum.name` (automatic, no config needed) → `toString()`.
+* **`exportFormatter` on `TablexColumnBase`** — an optional `String Function(TRow row)` that overrides the default export string for CSV, Excel, and PDF. Receives the full typed row object so you can derive the export value from any combination of fields. Resolution order: `exportFormatter` → column `formatter` → `Enum.name` (automatic, no config needed) → `toString()`.
 
 ### Bug fixes
 

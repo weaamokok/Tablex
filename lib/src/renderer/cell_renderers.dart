@@ -186,9 +186,8 @@ class TablexRenderers {
             child: Checkbox(
               tristate: true,
               value: value,
-              onChanged: onChanged == null
-                  ? null
-                  : (v) => onChanged(v ?? false),
+              onChanged:
+                  onChanged == null ? null : (v) => onChanged(v ?? false),
               visualDensity: VisualDensity.compact,
             ),
           );
@@ -230,7 +229,7 @@ class TablexRenderers {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
               color: color.withAlpha(30),
-              border: border ?? Border.all(color: color.withAlpha(120)),
+              border: border ?? Border.all(color: color),
               borderRadius: radius ?? BorderRadius.circular(20),
             ),
             child: Text(
@@ -405,7 +404,8 @@ class TablexRenderers {
   }) =>
       (row, value, ctx) {
         if (value == null) return const SizedBox.shrink();
-        return _LinkCell<TRow>(row: row, value: value, onTap: onTap, color: color);
+        return _LinkCell<TRow>(
+            row: row, value: value, onTap: onTap, color: color);
       };
 
   // ---------------------------------------------------------------------------
