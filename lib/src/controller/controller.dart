@@ -68,15 +68,16 @@ class TablexController<T> extends ChangeNotifier {
   /// fields from the same snapshot.
   TablexState<T> get state => _state;
 
-  /// PDF export configuration (font, text direction) used by [exportToPdf]
-  /// and [exportSelectedToPdf]. Set once on the controller so every export
-  /// path — including toolbar buttons — picks it up automatically.
+  /// PDF export configuration used by [exportToPdf] and [exportSelectedToPdf].
+  ///
+  /// Set once on the controller so every export path — including toolbar
+  /// buttons — picks it up automatically. No `pdf` package import needed.
   ///
   /// ```dart
   /// controller.pdfConfig = TablexPdfConfig(
-  ///   font: pw.Font.ttf(await rootBundle.load('assets/fonts/Cairo-Regular.ttf')),
-  ///   fontBold: pw.Font.ttf(await rootBundle.load('assets/fonts/Cairo-Bold.ttf')),
-  ///   textDirection: pw.TextDirection.rtl,
+  ///   fontData: await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
+  ///   fontBoldData: await rootBundle.load('assets/fonts/Cairo-Bold.ttf'),
+  ///   rtl: true,
   /// );
   /// ```
   TablexPdfConfig pdfConfig;

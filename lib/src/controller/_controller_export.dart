@@ -227,13 +227,18 @@ extension TablexControllerExport<T> on TablexController<T> {
             c.type == TablexColumnType.currency)
         .toList();
 
+    // Resolve fonts from raw ByteData so callers never need to import pdf/widgets.
+    final cellFont =
+        config.fontData != null ? pw.Font.ttf(config.fontData!) : null;
+    final headerFont = config.fontBoldData != null
+        ? pw.Font.ttf(config.fontBoldData!)
+        : cellFont;
+
     final doc = pw.Document();
     final pageFormat =
         visible.length > 6 ? PdfPageFormat.a4.landscape : PdfPageFormat.a4;
-
-    // Flip numeric alignment when RTL so numbers still sit on the right
-    // edge of their cell (which is the start edge in RTL layouts).
-    final isRtl = config.textDirection == pw.TextDirection.rtl;
+    final textDirection =
+        config.rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr;
 
     doc.addPage(
       pw.MultiPage(
@@ -241,7 +246,7 @@ extension TablexControllerExport<T> on TablexController<T> {
         margin: const pw.EdgeInsets.all(32),
         build: (_) => [
           pw.Directionality(
-            textDirection: config.textDirection,
+            textDirection: textDirection,
             child: pw.TableHelper.fromTextArray(
               headers: headers,
               data: rows,
@@ -249,20 +254,20 @@ extension TablexControllerExport<T> on TablexController<T> {
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.white,
                 fontSize: 9,
-                font: config.fontBold ?? config.font,
+                font: headerFont,
               ),
               headerDecoration:
                   const pw.BoxDecoration(color: PdfColors.blueGrey800),
-              cellStyle: pw.TextStyle(fontSize: 8, font: config.font),
+              cellStyle: pw.TextStyle(fontSize: 8, font: cellFont),
               oddRowDecoration:
                   const pw.BoxDecoration(color: PdfColors.grey100),
               cellAlignments: {
                 for (int i = 0; i < visible.length; i++)
                   i: isNumericCol[i]
-                      ? (isRtl
+                      ? (config.rtl
                           ? pw.Alignment.centerLeft
                           : pw.Alignment.centerRight)
-                      : (isRtl
+                      : (config.rtl
                           ? pw.Alignment.centerRight
                           : pw.Alignment.centerLeft),
               },

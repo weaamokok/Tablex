@@ -1,11 +1,13 @@
-import 'package:pdf/widgets.dart' as pw;
+import 'dart:typed_data';
 
 /// Configuration passed to [TablexController.exportToPdf] and
 /// [TablexController.exportSelectedToPdf].
 ///
 /// The built-in PDF fonts (Helvetica / Times) only cover the Latin character
-/// set. Pass a [font] loaded from your app's assets whenever your data
-/// contains Arabic, Hebrew, CJK, or any other non-Latin script.
+/// set. Supply [fontData] (and optionally [fontBoldData]) loaded from your
+/// app's assets whenever your data contains Arabic, Hebrew, CJK, or any other
+/// non-Latin script. No `pdf` package import is required — just pass the raw
+/// [ByteData] from `rootBundle.load()`.
 ///
 /// **Usage example (Arabic data):**
 /// ```dart
@@ -14,40 +16,35 @@ import 'package:pdf/widgets.dart' as pw;
 /// //      - assets/fonts/Cairo-Regular.ttf
 /// //      - assets/fonts/Cairo-Bold.ttf
 ///
-/// // 2. Load and pass the font at export time:
-/// final font = pw.Font.ttf(
-///   await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
-/// );
-/// final boldFont = pw.Font.ttf(
-///   await rootBundle.load('assets/fonts/Cairo-Bold.ttf'),
-/// );
-///
-/// final bytes = await controller.exportToPdf(
-///   columns,
-///   pdfConfig: TablexPdfConfig(
-///     font: font,
-///     fontBold: boldFont,
-///     textDirection: pw.TextDirection.rtl,
-///   ),
+/// // 2. Set the config once on the controller:
+/// controller.pdfConfig = TablexPdfConfig(
+///   fontData: await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
+///   fontBoldData: await rootBundle.load('assets/fonts/Cairo-Bold.ttf'),
+///   rtl: true,
 /// );
 /// ```
+///
+/// After that, all PDF exports — including toolbar buttons — use the config
+/// automatically with no further arguments needed.
 class TablexPdfConfig {
   const TablexPdfConfig({
-    this.font,
-    this.fontBold,
-    this.textDirection = pw.TextDirection.ltr,
+    this.fontData,
+    this.fontBoldData,
+    this.rtl = false,
   });
 
-  /// Font used for all cell content. Must contain glyphs for every character
-  /// in your data. When `null` the PDF library's built-in Latin font is used.
-  final pw.Font? font;
-
-  /// Font used for column headers. Falls back to [font] when `null`.
-  final pw.Font? fontBold;
-
-  /// Text direction applied to headers and cells.
+  /// Raw TTF font data for cell content, loaded via `rootBundle.load()`.
   ///
-  /// Set to [pw.TextDirection.rtl] for Arabic, Hebrew, or other right-to-left
-  /// scripts. Defaults to [pw.TextDirection.ltr].
-  final pw.TextDirection textDirection;
+  /// Must contain glyphs for every character in your data. When `null` the
+  /// PDF library's built-in Latin font is used.
+  final ByteData? fontData;
+
+  /// Raw TTF font data for column headers. Falls back to [fontData] when `null`.
+  final ByteData? fontBoldData;
+
+  /// Set to `true` for right-to-left scripts (Arabic, Hebrew, etc.).
+  ///
+  /// Flips text direction and adjusts numeric column alignment automatically.
+  /// Defaults to `false`.
+  final bool rtl;
 }

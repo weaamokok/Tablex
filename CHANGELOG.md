@@ -1,3 +1,31 @@
+## 0.5.9
+
+### Breaking changes
+
+* **`TablexPdfConfig` API simplified — no `pdf` package import required** — `font` / `fontBold` (`pw.Font`) and `textDirection` (`pw.TextDirection`) have been replaced with `fontData` / `fontBoldData` (`ByteData`) and `rtl` (`bool`). The library now constructs `pw.Font` internally, so callers never need to import `package:pdf/widgets.dart`.
+
+  Before:
+  ```dart
+  import 'package:pdf/widgets.dart' as pw;
+
+  controller.pdfConfig = TablexPdfConfig(
+    font: pw.Font.ttf(await rootBundle.load('assets/fonts/Cairo-Regular.ttf')),
+    fontBold: pw.Font.ttf(await rootBundle.load('assets/fonts/Cairo-Bold.ttf')),
+    textDirection: pw.TextDirection.rtl,
+  );
+  ```
+
+  After:
+  ```dart
+  controller.pdfConfig = TablexPdfConfig(
+    fontData: await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
+    fontBoldData: await rootBundle.load('assets/fonts/Cairo-Bold.ttf'),
+    rtl: true,
+  );
+  ```
+
+---
+
 ## 0.5.8
 
 ### New features
