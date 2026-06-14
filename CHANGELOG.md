@@ -1,3 +1,15 @@
+## 0.6.0
+
+### New features
+
+* **Automatic RTL text detection in grid cells** — Arabic, Hebrew, and other right-to-left scripts now render correctly in grid cells even when the host app's directionality is LTR. No configuration is needed. Each cell independently:
+  * Detects whether its text starts with an RTL Unicode character (Arabic U+0600–U+06FF, Hebrew U+0590–U+05FF, Arabic Supplement, NKo, Arabic Presentation Forms, etc.) by inspecting the first non-whitespace code point — zero overhead per cell.
+  * Sets `textDirection: TextDirection.rtl` on the `Text` / `SelectableText` widget so Flutter lays the text out right-to-left and clips overflow on the correct side.
+  * Switches alignment to `TextAlign.right` for RTL content when the column uses the default `TextAlign.start`, so Arabic/Hebrew text sits at the right edge of the cell rather than the left.
+  * Mixed rows (some cells LTR, some RTL) are handled correctly — each cell is resolved independently.
+
+---
+
 ## 0.5.9
 
 ### Breaking changes

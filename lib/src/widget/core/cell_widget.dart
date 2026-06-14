@@ -131,18 +131,28 @@ class TablexCellWidget<TRow> extends StatelessWidget {
 
   Widget _textCell(String text, BuildContext context,
       {bool endAlign = false, bool selectable = false}) {
-    final direction = Directionality.of(context);
-    final isLtr = direction == TextDirection.ltr;
+    final appDirection = Directionality.of(context);
+    final isAppLtr = appDirection == TextDirection.ltr;
+
+    // Auto-detect RTL content so Arabic/Hebrew text renders correctly even
+    // when the host app's directionality is LTR.
+    final isTextRtl = _isRtlText(text);
+    final textDirection = isTextRtl ? TextDirection.rtl : null;
+
     TextAlign align;
     if (endAlign) {
-      align = isLtr ? TextAlign.right : TextAlign.left;
+      align = isAppLtr ? TextAlign.right : TextAlign.left;
     } else if (column.textAlign == TextAlign.start) {
-      align = isLtr ? TextAlign.left : TextAlign.right;
+      // RTL text in an LTR app should sit at the right (its natural start edge).
+      align = isTextRtl
+          ? TextAlign.right
+          : (isAppLtr ? TextAlign.left : TextAlign.right);
     } else if (column.textAlign == TextAlign.end) {
-      align = isLtr ? TextAlign.right : TextAlign.left;
+      align = isAppLtr ? TextAlign.right : TextAlign.left;
     } else {
       align = column.textAlign;
     }
+
     final style =
         theme.cellTextStyle?.copyWith(overflow: TextOverflow.ellipsis) ??
             const TextStyle(overflow: TextOverflow.ellipsis);
@@ -155,12 +165,14 @@ class TablexCellWidget<TRow> extends StatelessWidget {
                 text,
                 maxLines: 1,
                 textAlign: align,
+                textDirection: textDirection,
                 style: style,
               )
             : Text(
                 text,
                 overflow: TextOverflow.ellipsis,
                 textAlign: align,
+                textDirection: textDirection,
                 style: theme.cellTextStyle,
               ),
       ),
@@ -205,6 +217,32 @@ class TablexCellWidget<TRow> extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Default edit cell — stateful to properly manage TextEditingController.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// RTL auto-detection
+// ---------------------------------------------------------------------------
+
+/// Returns `true` if [text] starts with a right-to-left character.
+///
+/// Checks the first meaningful (non-whitespace) code point against the Unicode
+/// ranges for Arabic, Hebrew, Thaana, NKo, and related scripts. This lets
+/// individual cells render correctly when the host app is LTR but the cell
+/// value contains Arabic or Hebrew text.
+bool _isRtlText(String text) {
+  for (final char in text.runes) {
+    if (char == 0x20 || char == 0x09 || char == 0x0A || char == 0x0D) {
+      continue; // skip whitespace
+    }
+    return (char >= 0x0590 && char <= 0x05FF) || // Hebrew
+        (char >= 0x0600 && char <= 0x06FF) || // Arabic
+        (char >= 0x0750 && char <= 0x077F) || // Arabic Supplement
+        (char >= 0x07C0 && char <= 0x07FF) || // NKo
+        (char >= 0x08A0 && char <= 0x08FF) || // Arabic Extended-A
+        (char >= 0xFB50 && char <= 0xFDFF) || // Arabic Presentation Forms-A
+        (char >= 0xFE70 && char <= 0xFEFF); // Arabic Presentation Forms-B
+  }
+  return false;
+}
 
 class _DefaultEditCell extends StatefulWidget {
   const _DefaultEditCell({
