@@ -8,6 +8,28 @@ part of 'controller.dart';
 // live in an extension so they appear as first-class controller methods.
 
 // ---------------------------------------------------------------------------
+// RTL auto-detection
+// ---------------------------------------------------------------------------
+
+/// Returns `true` if [text]'s first non-whitespace character belongs to a
+/// right-to-left Unicode script (Arabic, Hebrew, NKo, etc.).
+bool _isPdfRtlText(String text) {
+  for (final char in text.runes) {
+    if (char == 0x20 || char == 0x09 || char == 0x0A || char == 0x0D) {
+      continue;
+    }
+    return (char >= 0x0590 && char <= 0x05FF) || // Hebrew
+        (char >= 0x0600 && char <= 0x06FF) || // Arabic
+        (char >= 0x0750 && char <= 0x077F) || // Arabic Supplement
+        (char >= 0x07C0 && char <= 0x07FF) || // NKo
+        (char >= 0x08A0 && char <= 0x08FF) || // Arabic Extended-A
+        (char >= 0xFB50 && char <= 0xFDFF) || // Arabic Presentation Forms-A
+        (char >= 0xFE70 && char <= 0xFEFF); // Arabic Presentation Forms-B
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Pure CSV helpers (library-private top-level functions)
 // ---------------------------------------------------------------------------
 
@@ -227,18 +249,24 @@ extension TablexControllerExport<T> on TablexController<T> {
             c.type == TablexColumnType.currency)
         .toList();
 
-    // Resolve fonts from raw ByteData so callers never need to import pdf/widgets.
-    final cellFont =
-        config.fontData != null ? pw.Font.ttf(config.fontData!) : null;
-    final headerFont = config.fontBoldData != null
-        ? pw.Font.ttf(config.fontBoldData!)
-        : cellFont;
+    // Prefer pre-built pw.Font (e.g. from PdfGoogleFonts); fall back to ByteData.
+    final cellFont = config.font ??
+        (config.fontData != null ? pw.Font.ttf(config.fontData!) : null);
+    final headerFont = config.fontBold ??
+        config.font ??
+        (config.fontBoldData != null
+            ? pw.Font.ttf(config.fontBoldData!)
+            : cellFont);
+
+    // Auto-detect RTL from cell content (same logic as grid cells).
+    final isRtl = rows.any((row) => row.any(_isPdfRtlText)) ||
+        headers.any(_isPdfRtlText);
+    final textDirection =
+        isRtl ? pw.TextDirection.rtl : pw.TextDirection.ltr;
 
     final doc = pw.Document();
     final pageFormat =
         visible.length > 6 ? PdfPageFormat.a4.landscape : PdfPageFormat.a4;
-    final textDirection =
-        config.rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr;
 
     doc.addPage(
       pw.MultiPage(
@@ -264,10 +292,10 @@ extension TablexControllerExport<T> on TablexController<T> {
               cellAlignments: {
                 for (int i = 0; i < visible.length; i++)
                   i: isNumericCol[i]
-                      ? (config.rtl
+                      ? (isRtl
                           ? pw.Alignment.centerLeft
                           : pw.Alignment.centerRight)
-                      : (config.rtl
+                      : (isRtl
                           ? pw.Alignment.centerRight
                           : pw.Alignment.centerLeft),
               },

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:tablex/tablex.dart';
 
@@ -154,8 +155,18 @@ class Country {
 // ============================================================================
 
 const _firstNames = [
-  'Alice',
-  'Bob',
+  // Arabic names
+  'وئام',
+  'سارة',
+  'محمد',
+  'فاطمة',
+  'أحمد',
+  'نورة',
+  'عمر',
+  'ريم',
+  'خالد',
+  'منى',
+  // English names
   'Carol',
   'David',
   'Eva',
@@ -174,14 +185,14 @@ const _firstNames = [
   'Rachel',
   'Sam',
   'Tina',
-  'Uma',
-  'Victor',
-  'Wendy',
-  'Xander',
-  'Yara',
-  'Zoe',
 ];
 const _lastNames = [
+  // Arabic last names
+  'العمري',
+  'الزهراني',
+  'القحطاني',
+  'السالم',
+  // English last names
   'Smith',
   'Johnson',
   'Williams',
@@ -195,32 +206,39 @@ const _lastNames = [
   'Anderson',
   'Taylor',
   'Thomas',
-  'Hernandez',
   'Moore',
-  'Martin',
   'Jackson',
-  'Thompson',
   'White',
-  'Lopez',
 ];
 const _departments = [
   'Engineering',
+  'هندسة البرمجيات',
   'Design',
+  'التصميم',
   'Marketing',
+  'التسويق',
   'Sales',
+  'المبيعات',
   'HR',
+  'الموارد البشرية',
   'Finance',
-  'Legal',
+  'المالية',
 ];
+
+bool _isAscii(String s) => s.codeUnits.every((c) => c < 128);
 
 Employee _makeEmployee(int id, Random rng) {
   final first = _firstNames[rng.nextInt(_firstNames.length)];
   final last = _lastNames[rng.nextInt(_lastNames.length)];
   final name = '$first $last';
+  // Use an ID-based email when either part contains non-ASCII (Arabic) chars.
+  final email = _isAscii(first) && _isAscii(last)
+      ? '${first.toLowerCase()}.${last.toLowerCase()}@corp.io'
+      : 'employee.$id@corp.io';
   return Employee(
     id: id,
     name: name,
-    email: '${first.toLowerCase()}.${last.toLowerCase()}@corp.io',
+    email: email,
     department: _departments[rng.nextInt(_departments.length)],
     salary: (50000 + rng.nextInt(100000).toDouble()),
     // joinDate: DateTime.now().subtract(Duration(days: rng.nextInt(3650))),
@@ -408,11 +426,28 @@ class _StaticGridScreen extends StatefulWidget {
 
 class _StaticGridScreenState extends State<_StaticGridScreen> {
   late List<Employee> _rows;
+  final _controller = TablexController<Employee>();
 
   @override
   void initState() {
     super.initState();
     _rows = _allEmployees.take(20).toList();
+    _loadPdfFont();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPdfFont() async {
+    final font = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
+    final bold = await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
+    _controller.pdfConfig = TablexPdfConfig(
+      fontData: font,
+      fontBoldData: bold,
+    );
   }
 
   void _showSnack(String msg) {
@@ -452,6 +487,7 @@ class _StaticGridScreenState extends State<_StaticGridScreen> {
           const SizedBox(height: 12),
           Expanded(
             child: Tablex<Employee>.static(
+              controller: _controller,
               columns: columns,
               rows: _rows,
               showSelectionSummary: true,
@@ -1026,6 +1062,16 @@ class _ImportExportScreenState extends State<_ImportExportScreen> {
     super.initState();
     _controller.addListener(_onControllerChanged);
     _controller.replaceRows(_initialRows, rowBuilder: _employeeRowBuilder);
+    _loadPdfFont();
+  }
+
+  Future<void> _loadPdfFont() async {
+    final font = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
+    final bold = await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
+    _controller.pdfConfig = TablexPdfConfig(
+      fontData: font,
+      fontBoldData: bold,
+    );
   }
 
   @override

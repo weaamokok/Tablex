@@ -1,50 +1,60 @@
 import 'dart:typed_data';
+import 'package:pdf/widgets.dart' as pw;
 
 /// Configuration passed to [TablexController.exportToPdf] and
 /// [TablexController.exportSelectedToPdf].
 ///
 /// The built-in PDF fonts (Helvetica / Times) only cover the Latin character
-/// set. Supply [fontData] (and optionally [fontBoldData]) loaded from your
-/// app's assets whenever your data contains Arabic, Hebrew, CJK, or any other
-/// non-Latin script. No `pdf` package import is required — just pass the raw
-/// [ByteData] from `rootBundle.load()`.
+/// set. Supply font data whenever your table contains Arabic, Hebrew, CJK, or
+/// any other non-Latin script. RTL direction is detected automatically from
+/// cell content — no manual flag needed.
 ///
-/// **Usage example (Arabic data):**
-/// ```dart
-/// // 1. Add a TTF font to your app's assets (pubspec.yaml):
-/// //    assets:
-/// //      - assets/fonts/Cairo-Regular.ttf
-/// //      - assets/fonts/Cairo-Bold.ttf
+/// **Two ways to provide a font:**
 ///
-/// // 2. Set the config once on the controller:
-/// controller.pdfConfig = TablexPdfConfig(
-///   fontData: await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
-///   fontBoldData: await rootBundle.load('assets/fonts/Cairo-Bold.ttf'),
-///   rtl: true,
-/// );
-/// ```
+/// 1. **Asset bytes** — load a bundled TTF file with `rootBundle.load()`:
+///    ```dart
+///    controller.pdfConfig = TablexPdfConfig(
+///      fontData: await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
+///      fontBoldData: await rootBundle.load('assets/fonts/Cairo-Bold.ttf'),
+///    );
+///    ```
 ///
-/// After that, all PDF exports — including toolbar buttons — use the config
-/// automatically with no further arguments needed.
+/// 2. **Pre-built font** — use `PdfGoogleFonts` from the `printing` package:
+///    ```dart
+///    controller.pdfConfig = TablexPdfConfig(
+///      font: await PdfGoogleFonts.cairoRegular(),
+///      fontBold: await PdfGoogleFonts.cairoBold(),
+///    );
+///    ```
+///
+/// [font] / [fontBold] take precedence over [fontData] / [fontBoldData] when
+/// both are supplied. After setting this once on the controller, all PDF
+/// exports — including toolbar buttons — use it automatically.
 class TablexPdfConfig {
   const TablexPdfConfig({
     this.fontData,
     this.fontBoldData,
-    this.rtl = false,
+    this.font,
+    this.fontBold,
   });
 
-  /// Raw TTF font data for cell content, loaded via `rootBundle.load()`.
+  /// Raw TTF bytes for body text, loaded via `rootBundle.load()`.
   ///
-  /// Must contain glyphs for every character in your data. When `null` the
-  /// PDF library's built-in Latin font is used.
+  /// Ignored when [font] is also set.
   final ByteData? fontData;
 
-  /// Raw TTF font data for column headers. Falls back to [fontData] when `null`.
+  /// Raw TTF bytes for header text. Falls back to [fontData] when `null`.
+  ///
+  /// Ignored when [fontBold] is also set.
   final ByteData? fontBoldData;
 
-  /// Set to `true` for right-to-left scripts (Arabic, Hebrew, etc.).
+  /// Pre-built font for body text (e.g. `await PdfGoogleFonts.cairoRegular()`).
   ///
-  /// Flips text direction and adjusts numeric column alignment automatically.
-  /// Defaults to `false`.
-  final bool rtl;
+  /// Takes precedence over [fontData].
+  final pw.Font? font;
+
+  /// Pre-built font for header text (e.g. `await PdfGoogleFonts.cairoBold()`).
+  ///
+  /// Takes precedence over [fontBoldData]. Falls back to [font] when `null`.
+  final pw.Font? fontBold;
 }

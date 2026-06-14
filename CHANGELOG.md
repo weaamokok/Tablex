@@ -1,3 +1,44 @@
+## 0.7.0
+
+### Breaking changes
+
+* **`TablexPdfConfig.rtl` removed — RTL is now auto-detected** — the `rtl: bool` field has been removed from `TablexPdfConfig`. The PDF exporter now inspects the first non-whitespace code point of every header and cell value and switches to `pw.TextDirection.rtl` automatically when RTL content is found (the same Unicode scanning used by grid cells since 0.6.0). Remove any `rtl:` argument from existing `TablexPdfConfig` calls — the result will be identical or better.
+
+  Before:
+  ```dart
+  controller.pdfConfig = TablexPdfConfig(
+    fontData: await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
+    rtl: true,
+  );
+  ```
+
+  After:
+  ```dart
+  controller.pdfConfig = TablexPdfConfig(
+    fontData: await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
+  );
+  ```
+
+### New features
+
+* **`TablexPdfConfig` accepts pre-built `pw.Font`** — two new optional fields `font` (`pw.Font?`) and `fontBold` (`pw.Font?`) accept a pre-built font directly, for example from `PdfGoogleFonts` in the `printing` package. They take precedence over `fontData` / `fontBoldData` when both are provided.
+
+  ```dart
+  // Using bundled asset bytes (no pdf import needed):
+  controller.pdfConfig = TablexPdfConfig(
+    fontData: await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
+    fontBoldData: await rootBundle.load('assets/fonts/Cairo-Bold.ttf'),
+  );
+
+  // Using PdfGoogleFonts (printing package already imported):
+  controller.pdfConfig = TablexPdfConfig(
+    font: await PdfGoogleFonts.cairoRegular(),
+    fontBold: await PdfGoogleFonts.cairoBold(),
+  );
+  ```
+
+---
+
 ## 0.6.0
 
 ### New features
