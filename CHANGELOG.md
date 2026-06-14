@@ -1,3 +1,22 @@
+## 0.7.1
+
+### New features
+
+* **`TablexConsumer.filterBarBuilder` — custom filter bar override** — pass a `filterBarBuilder` callback to replace the built-in chip-dialog filter bar with any widget. The callback receives the current `List<TablexActiveFilter>`, the typed `TablexController<T>`, and the `BuildContext`, so you can read `controller.state.query.params` and call `controller.setParam(...)` directly without going through the dialog.
+
+  ```dart
+  TablexConsumer<Employee>(
+    filterBarBuilder: (context, filters, controller) => MyInlineFilterRow(
+      filters: filters,
+      onToggle: (key, value) => controller.setParam(key, value),
+    ),
+  )
+  ```
+
+  Return `SizedBox.shrink()` to suppress the bar entirely while keeping fetch metadata wired up.
+
+---
+
 ## 0.7.0
 
 ### Breaking changes

@@ -155,18 +155,8 @@ class Country {
 // ============================================================================
 
 const _firstNames = [
-  // Arabic names
-  'وئام',
-  'سارة',
-  'محمد',
-  'فاطمة',
-  'أحمد',
-  'نورة',
-  'عمر',
-  'ريم',
-  'خالد',
-  'منى',
-  // English names
+  'Alice',
+  'Bob',
   'Carol',
   'David',
   'Eva',
@@ -187,12 +177,6 @@ const _firstNames = [
   'Tina',
 ];
 const _lastNames = [
-  // Arabic last names
-  'العمري',
-  'الزهراني',
-  'القحطاني',
-  'السالم',
-  // English last names
   'Smith',
   'Johnson',
   'Williams',
@@ -212,29 +196,18 @@ const _lastNames = [
 ];
 const _departments = [
   'Engineering',
-  'هندسة البرمجيات',
   'Design',
-  'التصميم',
   'Marketing',
-  'التسويق',
   'Sales',
-  'المبيعات',
   'HR',
-  'الموارد البشرية',
   'Finance',
-  'المالية',
 ];
-
-bool _isAscii(String s) => s.codeUnits.every((c) => c < 128);
 
 Employee _makeEmployee(int id, Random rng) {
   final first = _firstNames[rng.nextInt(_firstNames.length)];
   final last = _lastNames[rng.nextInt(_lastNames.length)];
   final name = '$first $last';
-  // Use an ID-based email when either part contains non-ASCII (Arabic) chars.
-  final email = _isAscii(first) && _isAscii(last)
-      ? '${first.toLowerCase()}.${last.toLowerCase()}@corp.io'
-      : 'employee.$id@corp.io';
+  final email = '${first.toLowerCase()}.${last.toLowerCase()}@corp.io';
   return Employee(
     id: id,
     name: name,
@@ -527,10 +500,17 @@ class _StaticGridScreenState extends State<_StaticGridScreen> {
 Future<TablexFetchResult<Employee>> _fakePagedFetch(
   TablexQuery query,
 ) async {
-  // Simulate network latency
   await Future<void>.delayed(const Duration(milliseconds: 400));
 
   var data = List<Employee>.from(_allEmployees);
+
+  // Server-side department filter — values are comma-separated.
+  final deptParam = query.params['department'] as String? ?? '';
+  final selectedDepts =
+      deptParam.split(',').where((s) => s.isNotEmpty).toSet();
+  if (selectedDepts.isNotEmpty) {
+    data = data.where((e) => selectedDepts.contains(e.department)).toList();
+  }
 
   // Server-side sort
   if (query.sort != null) {
@@ -563,11 +543,36 @@ Future<TablexFetchResult<Employee>> _fakePagedFetch(
   return TablexFetchResult(
     rows: page,
     totalRows: total,
+    meta: TablexResponseMeta(
+      filters: [
+        TablexActiveFilter(
+          key: 'department',
+          label: 'Department',
+          values: _departments
+              .map((d) => TablexActiveFilterValue(value: d, label: d))
+              .toList(),
+        ),
+      ],
+    ),
   );
 }
 
-class _LazyPagedGridScreen extends StatelessWidget {
+class _LazyPagedGridScreen extends StatefulWidget {
   const _LazyPagedGridScreen();
+
+  @override
+  State<_LazyPagedGridScreen> createState() => _LazyPagedGridScreenState();
+}
+
+class _LazyPagedGridScreenState extends State<_LazyPagedGridScreen> {
+  final _controller = TablexController<Employee>();
+  late final _columns = _employeeColumns();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -584,31 +589,36 @@ class _LazyPagedGridScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '200 total employees — fetched page-by-page from a fake server. '
-            'Includes pagination footer with page size selector.',
+            '200 total employees — server-side pagination, sorting, and '
+            'department filter chips.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: Tablex<Employee>.lazyPaged(
-              columns: _employeeColumns(),
+            child: TablexConsumer<Employee>(
+              controller: _controller,
+              columns: _columns,
               fetchTask: _fakePagedFetch,
               rowBuilder: _employeeRowBuilder,
-              density: TablexDensity.standard,
               initialPageSize: 13,
-              fetchWithSorting: true,
-              errorBuilder: (context, error) => Center(
-                child: Text(
-                  'Error loading data: $error',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
               enablePageJump: true,
+              fetchWithSorting: true,
               loadingBuilder: TablexLoadingBuilder(
                 skeletonData:
                     List.generate(13, (i) => _makeEmployee(i + 1, Random(i))),
                 builder: (context, table) =>
                     Skeletonizer(enabled: true, child: table),
+              ),
+              tableHeader: TablexToolbar<Employee>(
+                controller: _controller,
+                columns: _columns,
+              ),
+              // Replace the built-in chip-dialog filter bar with our own
+              // inline toggle-chip row so the user can filter without a dialog.
+              filterBarBuilder: (context, filters, controller) =>
+                  _CustomDepartmentFilterBar(
+                filters: filters,
+                controller: controller,
               ),
               theme: const TablexThemeData(
                 showVerticalCellBorders: false,
@@ -1131,6 +1141,124 @@ class _ImportExportScreenState extends State<_ImportExportScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Custom filter bar — replaces the default chip-dialog filter bar in the
+// Paged tab.  Renders department choices as compact toggle-chips directly
+// in a scrollable row so no dialog is needed.
+// ---------------------------------------------------------------------------
+
+class _CustomDepartmentFilterBar extends StatelessWidget {
+  const _CustomDepartmentFilterBar({
+    required this.filters,
+    required this.controller,
+  });
+
+  final List<TablexActiveFilter> filters;
+  final TablexController<Employee> controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      color: colorScheme.surfaceContainerLow,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final filter in filters) _FilterRow(filter: filter, controller: controller),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterRow extends StatelessWidget {
+  const _FilterRow({required this.filter, required this.controller});
+
+  final TablexActiveFilter filter;
+  final TablexController<Employee> controller;
+
+  Set<String> _activeValues() {
+    final raw = controller.state.query.params[filter.key] as String? ?? '';
+    return raw.split(',').where((s) => s.isNotEmpty).toSet();
+  }
+
+  void _toggle(String value) {
+    final active = _activeValues();
+    if (filter.singleSelect) {
+      controller.setParam(filter.key, active.contains(value) ? '' : value);
+    } else {
+      final next = Set<String>.from(active);
+      if (next.contains(value)) {
+        next.remove(value);
+      } else {
+        next.add(value);
+      }
+      controller.setParam(filter.key, next.join(','));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = _activeValues();
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasActive = active.isNotEmpty;
+
+    return Row(
+      children: [
+        Text(
+          '${filter.label}:',
+          style: Theme.of(context)
+              .textTheme
+              .labelMedium
+              ?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: filter.values.map((v) {
+                final selected = active.contains(v.value);
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    label: Text(v.label),
+                    selected: selected,
+                    showCheckmark: false,
+                    onSelected: (_) => _toggle(v.value),
+                    selectedColor: colorScheme.primaryContainer,
+                    labelStyle: TextStyle(
+                      fontSize: 12,
+                      color: selected
+                          ? colorScheme.onPrimaryContainer
+                          : colorScheme.onSurface,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        if (hasActive)
+          TextButton(
+            onPressed: () => controller.setParam(filter.key, ''),
+            style: TextButton.styleFrom(
+              foregroundColor: colorScheme.error,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              visualDensity: VisualDensity.compact,
+            ),
+            child: const Text('Clear', style: TextStyle(fontSize: 12)),
+          ),
+      ],
     );
   }
 }

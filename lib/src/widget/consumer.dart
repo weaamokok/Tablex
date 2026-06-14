@@ -56,6 +56,7 @@ class TablexConsumer<T> extends StatefulWidget {
     this.rowBuilder,
     this.tableHeader,
     this.tableFilter,
+    this.filterBarBuilder,
     this.initialPageSize = 13,
     this.paginationKey,
     this.selectionMode = TablexSelectionMode.none,
@@ -109,6 +110,26 @@ class TablexConsumer<T> extends StatefulWidget {
   /// Optional widget rendered between [tableHeader] and the filter bar (e.g.
   /// a search field or custom filter controls).
   final Widget? tableFilter;
+
+  /// Replaces the built-in [TablexFilterBar] with a custom widget.
+  ///
+  /// Receives the current list of [TablexActiveFilter] items returned by the
+  /// last fetch and the [TablexController] so you can read/write
+  /// `query.params`. Called only when filters are non-empty; return
+  /// `SizedBox.shrink()` to hide the bar entirely.
+  ///
+  /// ```dart
+  /// filterBarBuilder: (context, filters, controller) => MyCustomFilterBar(
+  ///   filters: filters,
+  ///   onChanged: (key, value) => controller.setParam(key, value),
+  ///   onClear: (key) => controller.removeParam(key),
+  /// ),
+  /// ```
+  final Widget Function(
+    BuildContext context,
+    List<TablexActiveFilter> filters,
+    TablexController<T> controller,
+  )? filterBarBuilder;
 
   /// Rows per page on the initial fetch. Defaults to 13.
   final int initialPageSize;
@@ -306,9 +327,12 @@ class _TablexConsumerState<T> extends State<TablexConsumer<T>> {
       theme: resolvedTheme,
     );
 
-    if (widget.tableHeight != null) {
-      grid = SizedBox(height: widget.tableHeight, child: grid);
-    }
+    // When tableHeight is set, fix the grid to that height.
+    // Otherwise wrap it in Expanded so it fills whatever bounded space the
+    // parent gives (e.g. an Expanded column cell or a SizedBox).
+    final gridChild = widget.tableHeight != null
+        ? SizedBox(height: widget.tableHeight, child: grid)
+        : Expanded(child: grid);
 
     return Padding(
       padding: widget.margin,
@@ -322,7 +346,8 @@ class _TablexConsumerState<T> extends State<TablexConsumer<T>> {
             borderRadius: resolvedTheme.borderRadius,
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Table header slot
               if (widget.tableHeader != null) widget.tableHeader!,
@@ -330,12 +355,15 @@ class _TablexConsumerState<T> extends State<TablexConsumer<T>> {
               if (widget.tableFilter != null) widget.tableFilter!,
               // Active server-side filter bar
               if (meta != null && meta.filters.isNotEmpty)
-                TablexFilterBar<T>(
-                  controller: _controller,
-                  filters: meta.filters,
-                ),
+                widget.filterBarBuilder != null
+                    ? widget.filterBarBuilder!(
+                        context, meta.filters, _controller)
+                    : TablexFilterBar<T>(
+                        controller: _controller,
+                        filters: meta.filters,
+                      ),
               // Grid itself
-              grid,
+              gridChild,
               // Selection summary
               if (widget.showSelectionSummary && selectedCount > 0)
                 widget.selectionSummaryBuilder != null

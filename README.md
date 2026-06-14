@@ -21,10 +21,12 @@ A production-grade Flutter data grid with no dependency on any third-party grid 
 - **Skeleton loading** — pre-populate the grid with placeholder rows that shimmer while the first page loads
 - **Column management** — resizable, sortable, reorderable headers; show/hide via column manager
 - **Row selection** — single or multi-select with a customisable summary bar and bulk-action buttons
+- *** — return `TablexActiveFilter` items in your fetch response and the grid renders interactive filter chips automatically; supports single-select (radio) and multi-select (checkbox) dialogs
 - **Built-in cell renderers** — identifier, two-line, avatar+two-line, currency, date, status chip, action buttons
-- **CSV, Excel & PDF export/import** — built-in toolbar; export all rows or only selected rows; formula-injection protection on CSV
+- **CSV, Excel & PDF export/import** — built-in toolbar; export all rows or only selected rows; formula-injection protection on CSV; custom per-column `exportFormatter`
+- **Non-Latin PDF fonts & auto RTL** — supply a TTF via `TablexPdfConfig`; RTL direction (Arabic, Hebrew, etc.) is detected automatically in both grid cells and PDF output
 - **Selectable cell text on web** — text cells use `SelectableText` by default on web so users can copy values by dragging; opt in on desktop via `TablexThemeData.enableTextSelection`
-- **Inline cell editing** — double-tap any editable cell; keyboard navigation between cells with Tab / Shift+Tab / ↓ / ↑
+- **Inline cell editing** — double-tap any editable cell; Tab / Shift+Tab / ↓ / ↑ keyboard navigation; custom edit renderer per column
 - **Density presets** — `compact`, `standard`, `comfortable`
 - **Column groups** — spanning header labels across multiple columns
 - **Frozen columns** — pin columns to the left or right edge
@@ -39,7 +41,7 @@ A production-grade Flutter data grid with no dependency on any third-party grid 
 
 ```yaml
 dependencies:
-  tablex: ^0.5.1
+  tablex: ^0.7.1
 ```
 
 ---
@@ -286,6 +288,16 @@ TablexColumn<Employee, String>(
   enableFiltering: true,
   textAlign: TextAlign.start,
   cellRenderer: TablexRenderers.twoLine(secondLine: (e) => e.email),
+
+  // Hide this column when every loaded row has a null/empty value for it.
+  hideIfEmpty: true,
+
+  // Override the string written to CSV / Excel / PDF for this column.
+  // Receives the full typed row so you can derive the value from any field.
+  exportFormatter: (employee) => '${employee.firstName} ${employee.lastName}',
+
+  // Enable double-tap-to-edit for this column.
+  enableEditing: true,
 )
 ```
 
@@ -323,6 +335,54 @@ Tablex<Employee>.lazyPaged(
 | `TablexRenderers.date(format: ...)` | Formatted `DateTime` |
 | `TablexRenderers.statusChip(colors: ..., labels: ...)` | Rounded coloured chip |
 | `TablexRenderers.actions(actions: ...)` | Row of icon buttons |
+
+---
+
+## Inline cell editing
+
+Set `enableEditing: true` on any column to allow in-place editing. Double-tap a cell (or call `_controller.beginEdit(rowIndex, fieldKey)`) to enter edit mode.
+
+```dart
+TablexColumn<Employee, String>(
+  fieldKey: 'name',
+  title: 'Name',
+  enableEditing: true,
+)
+```
+
+### Keyboard navigation
+
+| Key | Action |
+|---|---|
+| Tab / Shift+Tab | Move to next / previous editable column |
+| ↓ / ↑ | Move to same column in the row below / above |
+| Enter | Confirm and exit edit mode |
+| Escape | Cancel — restores the original value |
+
+### Custom edit cell
+
+Supply `buildEditCell` to replace the default `TextField` with any widget (dropdown, date picker, etc.):
+
+```dart
+TablexColumn<Employee, String>(
+  fieldKey: 'department',
+  title: 'Department',
+  enableEditing: true,
+  buildEditCell: (context, row, value, onSubmit, onCancel) => DropdownButton<String>(
+    value: value as String?,
+    items: departments.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+    onChanged: (v) { if (v != null) onSubmit(v); },
+  ),
+)
+```
+
+### Programmatic editing
+
+```dart
+_controller.beginEdit(rowIndex, 'name');   // enter edit mode
+_controller.confirmEdit('New Name');        // save and exit
+_controller.cancelEdit();                  // discard and exit
+```
 
 ---
 
@@ -372,6 +432,113 @@ await FileSaver.saveFile('report.pdf', bytes);
 // Selected rows only
 final bytes = await _controller.exportSelectedToPdf(columns);
 ```
+
+#### Non-Latin fonts & RTL (Arabic, Hebrew, CJK, …)
+
+The default PDF fonts only cover Latin characters. Supply a font via `TablexPdfConfig` and set it once on the controller — toolbar buttons and direct calls all pick it up automatically.
+
+**RTL direction is detected automatically** from cell content. No flag is needed.
+
+```dart
+// Option A — bundled asset (works offline, no extra package):
+controller.pdfConfig = TablexPdfConfig(
+  fontData:     await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
+  fontBoldData: await rootBundle.load('assets/fonts/Cairo-Bold.ttf'),
+);
+
+// Option B — Google Fonts at runtime (requires the `printing` package):
+controller.pdfConfig = TablexPdfConfig(
+  font:     await PdfGoogleFonts.cairoRegular(),
+  fontBold: await PdfGoogleFonts.cairoBold(),
+);
+```
+
+---
+
+## Filter bar
+
+`TablexConsumer` automatically renders an interactive filter bar above the grid whenever your `fetchTask` returns filters in its response metadata. No extra widget needed — just populate `TablexResponseMeta.filters` and the chips appear.
+
+```dart
+Future<TablexFetchResult<Employee>> _fetch(TablexQuery query) async {
+  final data = await api.getEmployees(
+    page: query.page,
+    department: query.params['department'],   // read active filter value
+    status: query.params['status'],
+  );
+
+  return TablexFetchResult(
+    rows: data.items,
+    totalRows: data.total,
+    meta: TablexResponseMeta(
+      filters: [
+        TablexActiveFilter(
+          key: 'department',
+          label: 'Department',
+          values: [
+            TablexActiveFilterValue(value: 'engineering', label: 'Engineering'),
+            TablexActiveFilterValue(value: 'design',      label: 'Design'),
+            TablexActiveFilterValue(value: 'marketing',   label: 'Marketing'),
+          ],
+        ),
+        TablexActiveFilter(
+          key: 'status',
+          label: 'Status',
+          singleSelect: true,   // radio buttons instead of checkboxes
+          values: [
+            TablexActiveFilterValue(value: 'active',   label: 'Active'),
+            TablexActiveFilterValue(value: 'inactive', label: 'Inactive'),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+```
+
+Each filter becomes a `FilterChip`. Tapping it opens a dialog with checkboxes (default) or radio buttons (`singleSelect: true`). The selected values are written to `query.params[key]` as a comma-separated string, which your `fetchTask` can read back. An `×` on the chip clears that filter; a **Clear all** button resets every active filter at once.
+
+### Custom filter bar override
+
+Replace the default chip-dialog bar with any widget using `filterBarBuilder`. The callback receives the active filters, the controller (to read/write `query.params`), and the `BuildContext`. It is called only when filters are non-empty.
+
+```dart
+TablexConsumer<Employee>(
+  // ...
+  filterBarBuilder: (context, filters, controller) {
+    // Read currently-selected departments from query params
+    final active = (controller.query.params['department'] as String? ?? '')
+        .split(',')
+        .where((s) => s.isNotEmpty)
+        .toSet();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: filters.first.values.map((v) {
+          final selected = active.contains(v.value);
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: FilterChip(
+              label: Text(v.label),
+              selected: selected,
+              showCheckmark: false,
+              onSelected: (_) {
+                final next = Set<String>.from(active);
+                selected ? next.remove(v.value) : next.add(v.value);
+                controller.setParam('department', next.join(','));
+              },
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  },
+)
+```
+
+Return `SizedBox.shrink()` from `filterBarBuilder` to hide the filter bar entirely while keeping the fetch metadata wired up.
 
 ---
 
