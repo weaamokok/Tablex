@@ -224,12 +224,13 @@ class TablexRenderers {
         if (value == null) return const SizedBox.shrink();
         final color = colors[value] ?? Colors.grey;
         final label = labels?[value] ?? value.toString();
+
         return Center(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
               color: color.withAlpha(30),
-              border: border ?? Border.all(color: color),
+              border: border,
               borderRadius: radius ?? BorderRadius.circular(20),
             ),
             child: Text(
@@ -322,11 +323,10 @@ class TablexRenderers {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _cellText(
-                  value ?? '',
-                  selectable: ctx.enableTextSelection,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
+                _cellText(value ?? '',
+                    selectable: ctx.enableTextSelection,
+                    style:
+                        TextStyle(fontWeight: FontWeight.w500, fontSize: 12)),
                 _cellText(
                   secondLine(row),
                   selectable: ctx.enableTextSelection,

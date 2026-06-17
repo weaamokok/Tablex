@@ -288,9 +288,9 @@ List<TablexColumnBase<Employee>> _employeeColumns({
       title: 'Name',
       width: 180,
       valueGetter: (e) => e.name,
-      cellRenderer: TablexRenderers.avatarTwoLine(
+      cellRenderer: TablexRenderers.twoLine(
         secondLine: (e) => e.email,
-        avatar: (_) => null,
+        //  avatar: (_) => null,
       ),
     ),
     TablexColumn<Employee, String>(
@@ -506,8 +506,7 @@ Future<TablexFetchResult<Employee>> _fakePagedFetch(
 
   // Server-side department filter — values are comma-separated.
   final deptParam = query.params['department'] as String? ?? '';
-  final selectedDepts =
-      deptParam.split(',').where((s) => s.isNotEmpty).toSet();
+  final selectedDepts = deptParam.split(',').where((s) => s.isNotEmpty).toSet();
   if (selectedDepts.isNotEmpty) {
     data = data.where((e) => selectedDepts.contains(e.department)).toList();
   }
@@ -536,13 +535,25 @@ Future<TablexFetchResult<Employee>> _fakePagedFetch(
   }
 
   final total = data.length;
-  final start = (query.page - 1) * query.pageSize;
+
+  // Cursor encodes the start offset as a plain decimal string.
+  // null cursor → first page (offset 0).
+  final start = query.cursor != null
+      ? (int.tryParse(query.cursor!) ?? 0)
+      : 0;
   final end = (start + query.pageSize).clamp(0, total);
   final page = data.sublist(start, end);
+
+  final nextStart = end;
+  final prevStart = (start - query.pageSize).clamp(0, total);
 
   return TablexFetchResult(
     rows: page,
     totalRows: total,
+    // Return a nextCursor only when more rows follow — this activates cursor
+    // mode in the footer and switches the page indicator to _CursorPageIndicator.
+    nextCursor: nextStart < total ? nextStart.toString() : null,
+    prevCursor: start > 0 ? prevStart.toString() : null,
     meta: TablexResponseMeta(
       filters: [
         TablexActiveFilter(
@@ -1171,7 +1182,8 @@ class _CustomDepartmentFilterBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (final filter in filters) _FilterRow(filter: filter, controller: controller),
+          for (final filter in filters)
+            _FilterRow(filter: filter, controller: controller),
         ],
       ),
     );
@@ -1239,7 +1251,8 @@ class _FilterRow extends StatelessWidget {
                       color: selected
                           ? colorScheme.onPrimaryContainer
                           : colorScheme.onSurface,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.normal,
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                   ),

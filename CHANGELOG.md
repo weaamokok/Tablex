@@ -1,3 +1,17 @@
+## 0.7.2
+
+### Bug fixes
+
+* **Cursor page indicator updates immediately on navigation** — `_CursorPageIndicator` now reflects the new page number as soon as the user taps Previous / Next / Go-to-page, before the async fetch completes. Previously the indicator could lag behind until the controller's `ListenableBuilder` fired. Fixed by calling `setState` synchronously in all three cursor navigation methods.
+
+* **Page jump indicator no longer shows "of N"** — the editable page number field in the default footer now stands alone without the `of [totalPages]` suffix. Navigation and page-jump still work identically.
+
+### Example
+
+* **Cursor-based pagination in the Paged tab** — `_fakePagedFetch` now returns `nextCursor` / `prevCursor` (offset encoded as an opaque string), activating cursor mode in the footer. This demonstrates the `_CursorPageIndicator`, cursor history management, and back-navigation from cache without a re-fetch.
+
+---
+
 ## 0.7.1
 
 ### New features

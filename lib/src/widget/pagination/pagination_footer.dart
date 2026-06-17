@@ -446,6 +446,7 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
       // Can only navigate to pages we already have a cursor for.
       final clamped = page.clamp(1, _cursorHistory.length);
       _cursorPage = clamped;
+      if (mounted) setState(() {});
       widget.controller.goToPage(clamped);
       _fetchByCursor(_cursorHistory[clamped - 1], targetPage: clamped);
       return;
@@ -460,6 +461,7 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
       if (_cursorPage <= 1) return;
       final prev = _cursorPage - 1;
       _cursorPage = prev;
+      if (mounted) setState(() {});
       widget.controller.goToPage(prev);
       _fetchByCursor(_cursorHistory[prev - 1], targetPage: prev);
       return;
@@ -480,6 +482,7 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
       if (_cursorHistory.length <= _cursorPage) return;
       final next = _cursorPage + 1;
       _cursorPage = next;
+      if (mounted) setState(() {});
       widget.controller.goToPage(next);
       _fetchByCursor(_cursorHistory[next - 1], targetPage: next);
       return;
@@ -504,7 +507,9 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
         final pageSize = q.pageSize;
 
         final hasNext = _cursorMode
-            ? (_cursorHasMore || _cursorHistory.length > _cursorPage)
+            ? (_cursorHasMore ||
+                _cursorHistory.length > _cursorPage ||
+                page < _totalPages)
             : page < _totalPages;
 
         final info = TablexPaginationInfo(
@@ -603,14 +608,9 @@ class _DefaultPaginationFooter extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         if (info.isCursorMode)
-                          _CursorPageIndicator(
-                            page: currentPage,
-                            totalPages:
-                                info.totalPages > 0 ? info.totalPages : null,
-                          )
+                          _CursorPageIndicator(page: currentPage)
                         else if (enablePageJump)
-                          _PageJumpIndicator(
-                              info: info, totalPages: totalPages)
+                          _PageJumpIndicator(info: info, totalPages: totalPages)
                         else
                           ..._buildPagePills(
                               context, currentPage, totalPages, info),
@@ -665,16 +665,12 @@ class _DefaultPaginationFooter extends StatelessWidget {
     return [
       if (showLeading) ...[
         _PagePill(
-            page: 1,
-            isActive: current == 1,
-            onPressed: () => info.goToPage(1)),
+            page: 1, isActive: current == 1, onPressed: () => info.goToPage(1)),
         const _Ellipsis(),
       ],
       for (final p in pages)
         _PagePill(
-            page: p,
-            isActive: p == current,
-            onPressed: () => info.goToPage(p)),
+            page: p, isActive: p == current, onPressed: () => info.goToPage(p)),
       if (showTrailing) ...[
         const _Ellipsis(),
         _PagePill(
@@ -807,22 +803,19 @@ class _Ellipsis extends StatelessWidget {
 }
 
 // ============================================================================
-// Cursor mode: "Page N" or "Page N of M" indicator (non-interactive)
+// Cursor mode: current page number indicator (non-interactive)
 // ============================================================================
 
 class _CursorPageIndicator extends StatelessWidget {
-  const _CursorPageIndicator({required this.page, this.totalPages});
+  const _CursorPageIndicator({required this.page});
 
   final int page;
-  final int? totalPages;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final style = Theme.of(context).textTheme.labelSmall;
-    final label = totalPages != null
-        ? 'Page $page of $totalPages'
-        : 'Page $page';
+    final label = page.toString();
 
     return Container(
       height: 32,
@@ -833,8 +826,7 @@ class _CursorPageIndicator extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       alignment: Alignment.center,
-      child: Text(label,
-          style: style?.copyWith(fontWeight: FontWeight.w600)),
+      child: Text(label, style: style?.copyWith(fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -899,7 +891,6 @@ class _PageJumpIndicatorState extends State<_PageJumpIndicator> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final textStyle = Theme.of(context).textTheme.labelSmall;
-    final muted = textStyle?.copyWith(color: cs.onSurfaceVariant);
     final focused = _focus.hasFocus;
 
     return Row(
@@ -931,8 +922,6 @@ class _PageJumpIndicatorState extends State<_PageJumpIndicator> {
             onSubmitted: _submit,
           ),
         ),
-        const SizedBox(width: 6),
-        Text('of ${widget.totalPages}', style: muted),
       ],
     );
   }

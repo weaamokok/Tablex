@@ -1,6 +1,34 @@
 # tablex
 
-A production-grade Flutter data grid with no dependency on any third-party grid engine.
+A production-grade Flutter data grid — zero dependency on any third-party grid engine.
+
+---
+
+## Why tablex?
+
+Flutter ships no production-ready data grid. Building one yourself means solving the same problems every time. tablex solves them once:
+
+
+**Infinite scroll eats memory.**
+tablex's infinite mode keeps only a configurable window of pages in memory. Old pages are evicted as new ones arrive and the scroll position is compensated so the viewport never jumps. Data races from concurrent in-flight fetches are eliminated with a generation counter — stale responses are dropped silently.
+
+**Every pixel is yours to own — or leave alone.**
+tablex inherits Material 3 `ColorScheme` by default, so it looks right in any app without a single line of theme config. When you do need to customize, `TablexThemeData` lets you override exactly what you want — border radius, row colours, checkbox style, density, cell borders, pagination background — without touching what you don't. Wrap a subtree with `TablexTheme` to scope a theme to a single screen. Every major UI surface has an escape hatch: replace the filter bar with `filterBarBuilder`, the pagination footer with `footerBuilder`, the selection summary with `selectionSummaryBuilder`, and individual cells with `cellRenderer`. You can swap any one piece without re-implementing the rest.
+
+**Server pagination is hard to get right.**
+Page caching, cache invalidation when sort or filters change, deduplication of in-flight requests, back-navigation without re-fetching — tablex handles all of it. You write one `fetchTask` callback that receives the current query state and returns a page of rows. The library does the rest.
+
+**Cursor-based APIs (GraphQL Relay, DynamoDB, Firestore, etc.) are harder still.**
+Opaque tokens can't be computed from a page number — the footer has to remember every token it has seen. tablex maintains a cursor history automatically. Return `nextCursor` from your fetch and the footer switches to cursor mode transparently: the page indicator updates on every navigation tap and back-navigation reuses cached tokens without a round trip.
+
+**Export is always an afterthought — until it isn't.**
+tablex ships a toolbar that exports to CSV, Excel, and PDF out of the box. Export the full dataset or only the selected rows. CSV output is formula-injection safe. PDF auto-detects RTL text (Arabic, Hebrew, etc.) and switches text direction per cell — no flag required. Supply a bundled TTF or use Google Fonts; both paths work.
+
+**Filter UI is boilerplate that never ends.**
+Return `TablexResponseMeta.filters` from your fetch function and tablex renders interactive filter chips above the grid automatically. Each chip opens a checkbox or radio dialog; the selected values flow back into `query.params` and trigger a re-fetch. Replace the chip UI entirely with `filterBarBuilder` to render your own inline controls — no subclassing required.
+
+**Inline editing in a grid is surprisingly complex.**
+Double-tap any cell to edit it. Tab / Shift+Tab moves between editable columns; ↓ / ↑ moves between rows. Replace the default `TextField` with any widget — dropdown, date picker, colour swatch — via `editRenderer`. Confirm with Enter, cancel with Escape. `onEdit` fires with the typed domain object so you can apply an optimistic update without touching the row key.
 
 ---
 
@@ -14,26 +42,23 @@ A production-grade Flutter data grid with no dependency on any third-party grid 
 
 ---
 
-## Features
+## What's included
 
-- **Four grid modes** — static in-memory, lazy-paged (server-side), infinite-scroll, and select-picker
-- **Sliding-window infinite scroll** — only keeps a configurable number of pages in memory; evicts old pages as the user scrolls, with seamless scroll-position compensation
-- **Skeleton loading** — pre-populate the grid with placeholder rows that shimmer while the first page loads
-- **Column management** — resizable, sortable, reorderable headers; show/hide via column manager
-- **Row selection** — single or multi-select with a customisable summary bar and bulk-action buttons
-- *** — return `TablexActiveFilter` items in your fetch response and the grid renders interactive filter chips automatically; supports single-select (radio) and multi-select (checkbox) dialogs
-- **Built-in cell renderers** — identifier, two-line, avatar+two-line, currency, date, status chip, action buttons
-- **CSV, Excel & PDF export/import** — built-in toolbar; export all rows or only selected rows; formula-injection protection on CSV; custom per-column `exportFormatter`
-- **Non-Latin PDF fonts & auto RTL** — supply a TTF via `TablexPdfConfig`; RTL direction (Arabic, Hebrew, etc.) is detected automatically in both grid cells and PDF output
-- **Selectable cell text on web** — text cells use `SelectableText` by default on web so users can copy values by dragging; opt in on desktop via `TablexThemeData.enableTextSelection`
-- **Inline cell editing** — double-tap any editable cell; Tab / Shift+Tab / ↓ / ↑ keyboard navigation; custom edit renderer per column
-- **Density presets** — `compact`, `standard`, `comfortable`
-- **Column groups** — spanning header labels across multiple columns
-- **Frozen columns** — pin columns to the left or right edge
-- **Cursor-based pagination** — opaque-cursor APIs supported alongside offset-based
-- **Theming** — full override via `TablexThemeData` or inherit from Material 3
-- **i18n** — locale strings via `slang` (override to ship your own language)
-- Zero third-party grid engine dependency
+| Capability | Detail |
+|---|---|
+| **Grid modes** | static, lazy-paged, infinite scroll, select-picker |
+| **Pagination** | offset-based and cursor-based (opaque tokens), 10-page cache, page-jump indicator |
+| **Sorting** | server-side or client-side, multi-column ready |
+| **Filter bar** | server-driven chips, single-select (radio) and multi-select (checkbox), custom override |
+| **Cell renderers** | identifier, two-line, avatar + two-line, currency, date, status chip, action buttons |
+| **Inline editing** | per-cell double-tap, keyboard nav, custom edit widget |
+| **Export** | CSV (injection-safe), Excel (`.xlsx`), PDF (landscape, RTL auto-detect) |
+| **Import** | CSV and Excel via toolbar |
+| **Selection** | single / multiple with summary bar, bulk actions, selected-only export |
+| **Column management** | resize, reorder, show/hide, groups, frozen columns |
+| **Skeleton loading** | placeholder rows during first fetch |
+| **Theming & customisation** | inherit Material 3 by default; override any surface via `TablexThemeData`; swap filter bar, footer, summary bar, or any cell renderer independently |
+| **i18n** | slang-based locale strings, fully overridable |
 
 ---
 
@@ -41,7 +66,7 @@ A production-grade Flutter data grid with no dependency on any third-party grid 
 
 ```yaml
 dependencies:
-  tablex: ^0.7.1
+  tablex: ^0.7.2
 ```
 
 ---
