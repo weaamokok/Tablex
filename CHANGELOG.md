@@ -1,3 +1,11 @@
+## 0.7.3
+
+### Bug fixes
+
+* **`fetchWithSorting: false` now sorts loaded rows in place for `lazyPaged` and `infinite`** — previously, tapping a sort header in either server-side variant with `fetchWithSorting: false` was a silent no-op: the re-fetch was correctly skipped but the visible rows were never reordered. The fix mirrors what the `static` variant has always done — the currently-loaded rows are sorted in memory using the same comparator (`extractValue` → `Comparable.compareTo` with string fallback) and replaced via `replaceRows`. For `lazyPaged` this sorts the current page; for `infinite` it sorts the loaded window. Full-dataset ordering still requires a server-side sort (`fetchWithSorting: true`).
+
+---
+
 ## 0.7.2
 
 ### Bug fixes
