@@ -111,6 +111,7 @@ class Tablex<T> extends StatefulWidget {
         _paginationKey = null,
         _enablePageJump = false,
         _footerBuilder = null,
+        _pageSizeSelectorBuilder = null,
         _hideEmptyColumns = false,
         _showSelectionSummary = showSelectionSummary,
         _selectionActions = selectionActions,
@@ -158,6 +159,7 @@ class Tablex<T> extends StatefulWidget {
     Key? paginationKey,
     bool enablePageJump = false,
     TablexFooterBuilder? footerBuilder,
+    TablexPageSizeSelectorBuilder? pageSizeSelectorBuilder,
     TablexThemeData? theme,
     bool showSelectionSummary = false,
     List<TablexSelectionAction<T>>? selectionActions,
@@ -192,6 +194,7 @@ class Tablex<T> extends StatefulWidget {
         _paginationKey = paginationKey,
         _enablePageJump = enablePageJump,
         _footerBuilder = footerBuilder,
+        _pageSizeSelectorBuilder = pageSizeSelectorBuilder,
         _fetchSize = 50,
         _windowPages = 1,
         _showSelectionSummary = showSelectionSummary,
@@ -268,6 +271,7 @@ class Tablex<T> extends StatefulWidget {
         _paginationKey = null,
         _enablePageJump = false,
         _footerBuilder = null,
+        _pageSizeSelectorBuilder = null,
         _hideEmptyColumns = false,
         _showSelectionSummary = showSelectionSummary,
         _selectionActions = selectionActions,
@@ -329,6 +333,7 @@ class Tablex<T> extends StatefulWidget {
         _paginationKey = null,
         _enablePageJump = false,
         _footerBuilder = null,
+        _pageSizeSelectorBuilder = null,
         _hideEmptyColumns = false,
         _showSelectionSummary = false,
         _selectionActions = null,
@@ -370,6 +375,7 @@ class Tablex<T> extends StatefulWidget {
   final Key? _paginationKey;
   final bool _enablePageJump;
   final TablexFooterBuilder? _footerBuilder;
+  final TablexPageSizeSelectorBuilder? _pageSizeSelectorBuilder;
   final bool _showSelectionSummary;
   final List<TablexSelectionAction<T>>? _selectionActions;
   final bool _includeClearSelectionAction;

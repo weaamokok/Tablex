@@ -85,6 +85,25 @@ typedef TablexFooterBuilder = Widget Function(
   TablexPaginationInfo info,
 );
 
+/// Builder that replaces the built-in page-size `DropdownButton` with a
+/// custom widget. Receives the current page size, the list of valid options,
+/// and the callback to call when the user selects a new size.
+///
+/// ```dart
+/// pageSizeSelectorBuilder: (context, current, options, onChange) =>
+///   SegmentedButton<int>(
+///     segments: options.map((n) => ButtonSegment(value: n, label: Text('$n'))).toList(),
+///     selected: {current},
+///     onSelectionChanged: (s) => onChange(s.first),
+///   ),
+/// ```
+typedef TablexPageSizeSelectorBuilder = Widget Function(
+  BuildContext context,
+  int currentSize,
+  List<int> options,
+  void Function(int) onChanged,
+);
+
 // ============================================================================
 // Widget
 // ============================================================================
@@ -102,6 +121,7 @@ class TablexPaginationFooter<T> extends StatefulWidget {
     this.fetchWithFiltering = true,
     this.enablePageJump = false,
     this.footerBuilder,
+    this.pageSizeSelectorBuilder,
   });
 
   final TablexController<T> controller;
@@ -125,6 +145,11 @@ class TablexPaginationFooter<T> extends StatefulWidget {
   /// Fully replaces the built-in footer UI. Receives a [TablexPaginationInfo]
   /// with the current state and navigation callbacks.
   final TablexFooterBuilder? footerBuilder;
+
+  /// Replaces the built-in page-size dropdown with a custom widget.
+  /// When `null` the default [DropdownButton] is used.
+  /// See [TablexPageSizeSelectorBuilder] for the callback signature.
+  final TablexPageSizeSelectorBuilder? pageSizeSelectorBuilder;
 
   @override
   State<TablexPaginationFooter<T>> createState() =>
@@ -535,6 +560,7 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
           pageSizeOptions: widget.pageSizeOptions,
           theme: widget.theme,
           enablePageJump: widget.enablePageJump && !_cursorMode,
+          pageSizeSelectorBuilder: widget.pageSizeSelectorBuilder,
         );
       },
     );
@@ -552,6 +578,7 @@ class _DefaultPaginationFooter extends StatelessWidget {
     required this.pageSizeOptions,
     required this.theme,
     required this.enablePageJump,
+    this.pageSizeSelectorBuilder,
   });
 
   final TablexPaginationInfo info;
@@ -559,6 +586,7 @@ class _DefaultPaginationFooter extends StatelessWidget {
   final List<int> pageSizeOptions;
   final TablexThemeData theme;
   final bool enablePageJump;
+  final TablexPageSizeSelectorBuilder? pageSizeSelectorBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -629,13 +657,22 @@ class _DefaultPaginationFooter extends StatelessWidget {
                   ),
                 ),
               ),
-              // Page-size selector — right-aligned.
-              TablexPageSizeSelector(
-                currentSize: info.pageSize,
-                options: pageSizeOptions,
-                onChanged: info.setPageSize,
-                theme: theme,
-              ),
+              // Page-size selector — right-aligned. Hidden when no rows are
+              // loaded so it doesn't appear on empty or error states.
+              if (info.totalRows > 0)
+                pageSizeSelectorBuilder != null
+                    ? pageSizeSelectorBuilder!(
+                        context,
+                        info.pageSize,
+                        pageSizeOptions,
+                        info.setPageSize,
+                      )
+                    : TablexPageSizeSelector(
+                        currentSize: info.pageSize,
+                        options: pageSizeOptions,
+                        onChanged: info.setPageSize,
+                        theme: theme,
+                      ),
             ],
           ),
         ),

@@ -538,9 +538,7 @@ Future<TablexFetchResult<Employee>> _fakePagedFetch(
 
   // Cursor encodes the start offset as a plain decimal string.
   // null cursor → first page (offset 0).
-  final start = query.cursor != null
-      ? (int.tryParse(query.cursor!) ?? 0)
-      : 0;
+  final start = query.cursor != null ? (int.tryParse(query.cursor!) ?? 0) : 0;
   final end = (start + query.pageSize).clamp(0, total);
   final page = data.sublist(start, end);
 
@@ -614,6 +612,8 @@ class _LazyPagedGridScreenState extends State<_LazyPagedGridScreen> {
               initialPageSize: 13,
               enablePageJump: true,
               fetchWithSorting: true,
+              pageSizeSelectorBuilder:
+                  (context, currentSize, options, onChanged) => SizedBox(),
               loadingBuilder: TablexLoadingBuilder(
                 skeletonData:
                     List.generate(13, (i) => _makeEmployee(i + 1, Random(i))),

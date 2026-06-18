@@ -151,6 +151,7 @@ class TablexThemeData {
     this.selectionSummaryBarColor,
     this.enableTextSelection = kIsWeb,
     this.emptyCellPlaceholder,
+    this.pageSizeSelectorIcon,
   });
 
   /// Background colour of the data area. Defaults to [ColorScheme.surface].
@@ -239,6 +240,14 @@ class TablexThemeData {
   /// ```
   final String? emptyCellPlaceholder;
 
+  /// Icon shown on the page-size dropdown in the pagination footer.
+  /// Defaults to [Icons.unfold_more_rounded] when `null`.
+  ///
+  /// ```dart
+  /// TablexThemeData(pageSizeSelectorIcon: Icons.expand_more)
+  /// ```
+  final IconData? pageSizeSelectorIcon;
+
   /// Decoration applied to the default inline-edit text field.
   ///
   /// When `null` the grid uses a compact underline decoration:
@@ -284,14 +293,14 @@ class TablexThemeData {
       loadingIndicatorColor: loadingIndicatorColor ?? colorScheme.primary,
       checkboxTheme:
           (checkboxTheme ?? const TablexCheckboxTheme()).resolve(context),
-      paginationBackgroundColor:
-          paginationBackgroundColor ?? colorScheme.surfaceContainerLow,
+      paginationBackgroundColor: paginationBackgroundColor,
       borderRadius: borderRadius,
       editInputDecoration: editInputDecoration,
       selectionSummaryBarColor:
           selectionSummaryBarColor ?? colorScheme.surfaceContainerHighest,
       enableTextSelection: enableTextSelection,
       emptyCellPlaceholder: emptyCellPlaceholder,
+      pageSizeSelectorIcon: pageSizeSelectorIcon,
     );
   }
 
@@ -318,6 +327,7 @@ class TablexThemeData {
     InputDecoration? editInputDecoration,
     Color? selectionSummaryBarColor,
     bool? enableTextSelection,
+    IconData? pageSizeSelectorIcon,
   }) {
     return TablexThemeData(
       backgroundColor: backgroundColor ?? this.backgroundColor,
@@ -349,6 +359,7 @@ class TablexThemeData {
       enableTextSelection: enableTextSelection ?? this.enableTextSelection,
       // ignore: unnecessary_this
       emptyCellPlaceholder: emptyCellPlaceholder ?? this.emptyCellPlaceholder,
+      pageSizeSelectorIcon: pageSizeSelectorIcon ?? this.pageSizeSelectorIcon,
     );
   }
 }

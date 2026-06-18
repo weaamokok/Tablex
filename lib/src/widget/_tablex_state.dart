@@ -323,6 +323,7 @@ class _TablexState<T> extends State<Tablex<T>> with _TablexStateMixin<T> {
             fetchWithFiltering: widget._fetchWithFiltering,
             enablePageJump: widget._enablePageJump,
             footerBuilder: widget._footerBuilder,
+            pageSizeSelectorBuilder: widget._pageSizeSelectorBuilder,
           ),
       ],
     );

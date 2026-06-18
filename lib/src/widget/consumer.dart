@@ -8,7 +8,8 @@ import '../model/row.dart';
 import '../theme/grid_theme.dart';
 import '../theme/grid_theme_data.dart';
 import 'core/filter_bar.dart';
-import 'pagination/pagination_footer.dart' show TablexFooterBuilder;
+import 'pagination/pagination_footer.dart'
+    show TablexFooterBuilder, TablexPageSizeSelectorBuilder;
 import 'selection/selection_summary_bar.dart';
 import 'tablex_widget.dart';
 import 'toolbar/_file_save.dart';
@@ -81,6 +82,7 @@ class TablexConsumer<T> extends StatefulWidget {
     this.columnGroups,
     this.enablePageJump = false,
     this.footerBuilder,
+    this.pageSizeSelectorBuilder,
     this.theme,
     this.onExportSelectedCsv,
     this.onExportSelectedExcel,
@@ -230,6 +232,20 @@ class TablexConsumer<T> extends StatefulWidget {
   /// ```
   final TablexFooterBuilder? footerBuilder;
 
+  /// Replaces the built-in page-size [DropdownButton] with a custom widget.
+  /// Receives the current page size, the option list, and the `onChanged`
+  /// callback — the same inputs the default selector uses.
+  ///
+  /// ```dart
+  /// pageSizeSelectorBuilder: (context, current, options, onChange) =>
+  ///   SegmentedButton<int>(
+  ///     segments: options.map((n) => ButtonSegment(value: n, label: Text('$n'))).toList(),
+  ///     selected: {current},
+  ///     onSelectionChanged: (s) => onChange(s.first),
+  ///   ),
+  /// ```
+  final TablexPageSizeSelectorBuilder? pageSizeSelectorBuilder;
+
   /// Override for the "Export selected as CSV" button in the selection summary
   /// bar. Receives the generated CSV string. When `null` the default copy
   /// dialog is shown.
@@ -324,6 +340,7 @@ class _TablexConsumerState<T> extends State<TablexConsumer<T>> {
       paginationKey: widget.paginationKey,
       enablePageJump: widget.enablePageJump,
       footerBuilder: widget.footerBuilder,
+      pageSizeSelectorBuilder: widget.pageSizeSelectorBuilder,
       theme: resolvedTheme,
     );
 

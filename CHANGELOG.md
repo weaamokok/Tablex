@@ -1,3 +1,30 @@
+## 0.7.4
+
+### New features
+
+* **`pageSizeSelectorBuilder` — override the page-size dropdown** — pass a `TablexPageSizeSelectorBuilder` callback to `TablexConsumer`, `Tablex.lazyPaged`, or `TablexPaginationFooter` to replace the built-in `DropdownButton` with any widget. The callback receives the current page size, the list of available options, and the `onChanged` callback.
+
+  ```dart
+  TablexConsumer<Employee>(
+    pageSizeSelectorBuilder: (context, current, options, onChange) =>
+      SegmentedButton<int>(
+        segments: options.map((n) => ButtonSegment(value: n, label: Text('$n'))).toList(),
+        selected: {current},
+        onSelectionChanged: (s) => onChange(s.first),
+      ),
+  )
+  ```
+
+* **`TablexThemeData.pageSizeSelectorIcon` — theme the dropdown icon** — set `pageSizeSelectorIcon` on your `TablexThemeData` to customise the icon shown on the default page-size selector. Defaults to `Icons.unfold_more_rounded` when null.
+
+### Bug fixes
+
+* **Page-size selector now hidden when no rows are loaded** — the selector was always visible because `totalPages` initialises to `1` before any fetch. The guard now checks `totalRows > 0`, so the selector is correctly hidden on empty results, error states, and initial load.
+
+* **`TablexPageSizeSelector` broken `icon:` fixed** — the icon field had a syntax error (`icon: ,`) that caused a compile failure. The icon is now rendered from `TablexThemeData.pageSizeSelectorIcon` (or the `Icons.unfold_more_rounded` fallback).
+
+---
+
 ## 0.7.3
 
 ### Bug fixes

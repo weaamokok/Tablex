@@ -27,6 +27,10 @@ class TablexPageSizeSelector extends StatelessWidget {
       onChanged: (v) => v != null ? onChanged(v) : null,
       underline: const SizedBox.shrink(),
       isDense: true,
+      icon: Icon(
+        theme.pageSizeSelectorIcon ?? Icons.unfold_more_rounded,
+        size: theme.iconSize,
+      ),
     );
   }
 }
