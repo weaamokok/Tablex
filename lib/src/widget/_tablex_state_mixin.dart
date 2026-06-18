@@ -154,7 +154,11 @@ mixin _TablexStateMixin<T> on State<Tablex<T>> {
       case _TablexVariant.select:
         _applyStaticSort(sort?.field, sort?.direction);
       case _TablexVariant.infinite:
-        if (!widget._fetchWithSorting) break;
+        if (!widget._fetchWithSorting) {
+          // Sort the already-loaded window in place rather than doing nothing.
+          _applyLoadedRowSort(sort?.field, sort?.direction);
+          break;
+        }
         _fetchGeneration++;
         _isFetchingForward = false;
         _isFetchingBackward = false;
@@ -165,12 +169,42 @@ mixin _TablexStateMixin<T> on State<Tablex<T>> {
         _preloadSkeletonIfNeeded();
         _fetchForward();
       case _TablexVariant.lazyPaged:
-        break; // pagination footer reacts via _onControllerChanged
+        if (!widget._fetchWithSorting) {
+          // Sort the currently-loaded page in place rather than doing nothing.
+          _applyLoadedRowSort(sort?.field, sort?.direction);
+          break;
+        }
+        // else: pagination footer reacts via _onControllerChanged
     }
   }
 
+  /// Sorts [widget._staticRows] and replaces the controller's rows.
+  /// Used by [_TablexVariant.static_] and [_TablexVariant.select].
   void _applyStaticSort(String? field, TablexSortDirection? direction) {
-    final rows = List<T>.from(widget._staticRows ?? []);
+    _sortAndReplace(
+      List<T>.from(widget._staticRows ?? []),
+      field,
+      direction,
+    );
+  }
+
+  /// Sorts whatever rows are currently loaded in the controller in place.
+  /// Used by [_TablexVariant.lazyPaged] and [_TablexVariant.infinite] when
+  /// [fetchWithSorting] is `false` — mirrors what [_applyStaticSort] does for
+  /// the static variant without triggering a re-fetch.
+  void _applyLoadedRowSort(String? field, TablexSortDirection? direction) {
+    _sortAndReplace(
+      List<T>.from(_controller.getAllRowData()),
+      field,
+      direction,
+    );
+  }
+
+  void _sortAndReplace(
+    List<T> rows,
+    String? field,
+    TablexSortDirection? direction,
+  ) {
     if (field != null && direction != null) {
       final candidates = widget._columns.where((c) => c.fieldKey == field);
       if (candidates.isNotEmpty) {

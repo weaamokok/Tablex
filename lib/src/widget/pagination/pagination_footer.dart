@@ -588,7 +588,9 @@ class _DefaultPaginationFooter extends StatelessWidget {
         // Nav row
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          color: theme.paginationBackgroundColor,
+          decoration: BoxDecoration(
+            color: theme.paginationBackgroundColor,
+          ),
           child: Row(
             children: [
               // Page navigation — centred so the pill row sits in the middle
@@ -815,7 +817,6 @@ class _CursorPageIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final style = Theme.of(context).textTheme.labelSmall;
-    final label = page.toString();
 
     return Container(
       height: 32,
@@ -826,7 +827,8 @@ class _CursorPageIndicator extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       alignment: Alignment.center,
-      child: Text(label, style: style?.copyWith(fontWeight: FontWeight.w600)),
+      child: Text(page.toString(),
+          style: style?.copyWith(fontWeight: FontWeight.w600)),
     );
   }
 }
