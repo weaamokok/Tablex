@@ -658,8 +658,12 @@ class _DefaultPaginationFooter extends StatelessWidget {
                 ),
               ),
               // Page-size selector — right-aligned. Hidden when no rows are
-              // loaded so it doesn't appear on empty or error states.
-              if (info.totalRows > 0)
+              // loaded so it doesn't appear on empty or error states, when
+              // disabled via theme, or in cursor mode where page size
+              // changes aren't meaningful.
+              if (info.totalRows > 0 &&
+                  theme.showPageSizeSelector &&
+                  !info.isCursorMode)
                 pageSizeSelectorBuilder != null
                     ? pageSizeSelectorBuilder!(
                         context,

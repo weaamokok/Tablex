@@ -1,3 +1,11 @@
+## 0.7.5
+
+### New features
+
+* **`TablexThemeData.showPageSizeSelector` — toggle the page-size dropdown** — set to `false` to hide the page-size selector from the pagination footer entirely. Defaults to `true`. The selector is always hidden in cursor-based pagination mode regardless of this setting, since page size changes aren't meaningful once the grid has switched to opaque cursor tokens.
+
+---
+
 ## 0.7.4
 
 ### New features

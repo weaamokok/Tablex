@@ -152,6 +152,7 @@ class TablexThemeData {
     this.enableTextSelection = kIsWeb,
     this.emptyCellPlaceholder,
     this.pageSizeSelectorIcon,
+    this.showPageSizeSelector = true,
   });
 
   /// Background colour of the data area. Defaults to [ColorScheme.surface].
@@ -248,6 +249,14 @@ class TablexThemeData {
   /// ```
   final IconData? pageSizeSelectorIcon;
 
+  /// Whether the page-size dropdown is shown in the pagination footer.
+  /// Defaults to `true`.
+  ///
+  /// Always hidden in cursor-based pagination mode regardless of this
+  /// setting, since page size changes aren't meaningful once the grid has
+  /// switched to opaque cursor tokens.
+  final bool showPageSizeSelector;
+
   /// Decoration applied to the default inline-edit text field.
   ///
   /// When `null` the grid uses a compact underline decoration:
@@ -301,6 +310,7 @@ class TablexThemeData {
       enableTextSelection: enableTextSelection,
       emptyCellPlaceholder: emptyCellPlaceholder,
       pageSizeSelectorIcon: pageSizeSelectorIcon,
+      showPageSizeSelector: showPageSizeSelector,
     );
   }
 
@@ -328,6 +338,7 @@ class TablexThemeData {
     Color? selectionSummaryBarColor,
     bool? enableTextSelection,
     IconData? pageSizeSelectorIcon,
+    bool? showPageSizeSelector,
   }) {
     return TablexThemeData(
       backgroundColor: backgroundColor ?? this.backgroundColor,
@@ -360,6 +371,7 @@ class TablexThemeData {
       // ignore: unnecessary_this
       emptyCellPlaceholder: emptyCellPlaceholder ?? this.emptyCellPlaceholder,
       pageSizeSelectorIcon: pageSizeSelectorIcon ?? this.pageSizeSelectorIcon,
+      showPageSizeSelector: showPageSizeSelector ?? this.showPageSizeSelector,
     );
   }
 }
