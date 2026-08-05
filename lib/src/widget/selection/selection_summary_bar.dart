@@ -79,7 +79,9 @@ class _TablexSelectionSummaryBarState extends State<TablexSelectionSummaryBar> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: resolvedTheme.selectionSummaryBarColor,
+      decoration: BoxDecoration(
+          color: resolvedTheme.selectionSummaryBarColor,
+          borderRadius: resolvedTheme.borderRadius),
       child: Row(
         children: [
           if (widget.onSelectAll != null) ...[

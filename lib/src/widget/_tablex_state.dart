@@ -190,28 +190,32 @@ class _TablexState<T> extends State<Tablex<T>> with _TablexStateMixin<T> {
             onExportSelectedPdf: widget._onExportSelectedPdf,
           );
 
-    Widget buildScrollableHeader() => SingleChildScrollView(
-          controller: _headerHorizontalScroll,
-          scrollDirection: Axis.horizontal,
-          physics: const NeverScrollableScrollPhysics(),
-          child: TablexHeaderRow<T>(
-            columns: bodyCols,
-            columnWidths: columnWidths,
-            hiddenFields: hiddenFields,
-            sort: state.query.sort,
-            density: widget._density,
-            theme: resolvedTheme,
-            onSort: _onSort,
-            onResizeUpdate:
-                widget._enableColumnResize ? _controller.setColumnWidth : null,
-            onResizeEnd: widget._enableColumnResize ? (_, __) {} : null,
-            onReorder: _onReorder,
-            selectionMode: widget._selectionMode,
-            selectedCount: _controller.selectedRows.length,
-            totalCount: _controller.rowCount,
-            onSelectAll: () =>
-                _controller.selectAll(_controller.getAllRowData()),
-            onDeselectAll: _controller.clearSelection,
+    Widget buildScrollableHeader() => LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            controller: _headerHorizontalScroll,
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            child: TablexHeaderRow<T>(
+              columns: bodyCols,
+              columnWidths: columnWidths,
+              viewportWidth: constraints.maxWidth,
+              hiddenFields: hiddenFields,
+              sort: state.query.sort,
+              density: widget._density,
+              theme: resolvedTheme,
+              onSort: _onSort,
+              onResizeUpdate: widget._enableColumnResize
+                  ? _controller.setColumnWidth
+                  : null,
+              onResizeEnd: widget._enableColumnResize ? (_, __) {} : null,
+              onReorder: _onReorder,
+              selectionMode: widget._selectionMode,
+              selectedCount: _controller.selectedRows.length,
+              totalCount: _controller.rowCount,
+              onSelectAll: () =>
+                  _controller.selectAll(_controller.getAllRowData()),
+              onDeselectAll: _controller.clearSelection,
+            ),
           ),
         );
 

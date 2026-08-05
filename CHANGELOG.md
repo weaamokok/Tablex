@@ -1,3 +1,17 @@
+## 0.7.6
+
+### Bug fixes
+
+* **Header and body now fill the full grid width** — when the sum of column widths was narrower than the available viewport, the header/body backgrounds stopped short, leaving a blank gap that didn't match the always-full-width selection summary bar. The last visible column is now stretched to close that gap, so the header, body, and selection summary bar stay aligned.
+
+* **Selection checkbox column hidden when no columns are visible** — previously the header select-all checkbox (and each row's checkbox) still rendered even when every column was hidden, showing a functionless checkbox with nothing next to it. Both now hide together with the columns.
+
+* **Rounded corners applied consistently across header/selection bars** — the selection summary header (`Tablex`), column group header, and selection summary bar (`TablexConsumer`) now paint their background using `theme.borderRadius` instead of a flat fill, matching the grid's rounded outer border.
+
+* **Removed duplicate header bottom border** — each header cell previously drew its own bottom divider in addition to the one spanning the full row, producing a doubled-up border line.
+
+---
+
 ## 0.7.5
 
 ### New features

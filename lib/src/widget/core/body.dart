@@ -46,118 +46,147 @@ class TablexBody<TRow> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        final rows = controller.rows;
-        if (rows.isEmpty) {
-          return Center(
-            child: noDataWidget ??
-                Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Text(
-                    tablexStrings(context).noData,
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ),
-          );
-        }
-
-        final state = controller.state;
-        final columnWidths = state.columnWidths;
-        final visible = columns
-            .where((c) => !c.hide && !hiddenFields.contains(c.fieldKey))
-            .toList();
-
-        final showCheckboxes = selectionMode == TablexSelectionMode.multiple;
-
-        final totalWidth = visible.fold<double>(
-          showCheckboxes ? _kCheckboxWidth : 0.0,
-          (sum, col) =>
-              sum + (columnWidths[col.fieldKey] ?? col.width ?? 150.0),
-        );
-
-        final verticalList = Scrollbar(
-          controller: verticalScrollController,
-          thumbVisibility: true,
-          child: ListView.builder(
-            controller: verticalScrollController,
-            itemCount: rows.length,
-            itemExtent: density.rowHeight,
-            itemBuilder: (context, index) {
-              final row = rows[index];
-              final isSelected = controller.isSelected(row.data);
-              return RepaintBoundary(
-                child: _TablexBodyRow<TRow>(
-                  key: ValueKey(row.key),
-                  row: row,
-                  rowIndex: index,
-                  visible: visible,
-                  columnWidths: columnWidths,
-                  state: state,
-                  showCheckboxes: showCheckboxes,
-                  isSelected: isSelected,
-                  density: density,
-                  theme: theme,
-                  selectionMode: selectionMode,
-                  onRowTap: onRowTap,
-                  onRowDoubleTap: onRowDoubleTap,
-                  onToggleSelection: () {
-                    controller.toggleRowSelection(row.data);
-                    onSelectionChanged?.call(controller.selectedRows);
-                  },
-                  onBeginEdit: (field) => controller.beginEdit(index, field),
-                  onCancelEdit: controller.cancelEdit,
-                  onEditConfirm: (field, newValue) {
-                    _commitEdit(
-                      controller: controller,
-                      visible: visible,
-                      rows: rows,
-                      rowIndex: index,
-                      field: field,
-                      newValue: newValue,
-                    );
-                  },
-                  onNavigate: (field, newValue, direction) {
-                    _commitEdit(
-                      controller: controller,
-                      visible: visible,
-                      rows: rows,
-                      rowIndex: index,
-                      field: field,
-                      newValue: newValue,
-                    );
-                    final newRow = _resolveNavTarget(
-                      controller: controller,
-                      visible: visible,
-                      rowIndex: index,
-                      field: field,
-                      direction: direction,
-                    );
-                    if (newRow != null) {
-                      controller.beginEdit(newRow.$1, newRow.$2);
-                      _scrollToRow(
-                        rowIndex: newRow.$1,
-                        density: density,
-                        scrollController: verticalScrollController,
-                      );
-                    }
-                  },
-                ),
+    return LayoutBuilder(
+      builder: (context, viewportConstraints) {
+        return ListenableBuilder(
+          listenable: controller,
+          builder: (context, _) {
+            final rows = controller.rows;
+            if (rows.isEmpty) {
+              return Center(
+                child: noDataWidget ??
+                    Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        tablexStrings(context).noData,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ),
               );
-            },
-          ),
-        );
+            }
 
-        return Scrollbar(
-          controller: horizontalScrollController,
-          thumbVisibility: true,
-          notificationPredicate: (n) => n.depth == 1,
-          child: SingleChildScrollView(
-            controller: horizontalScrollController,
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(width: totalWidth, child: verticalList),
-          ),
+            final state = controller.state;
+            final columnWidths = state.columnWidths;
+            final visible = columns
+                .where((c) => !c.hide && !hiddenFields.contains(c.fieldKey))
+                .toList();
+
+            final showCheckboxes =
+                selectionMode == TablexSelectionMode.multiple &&
+                    visible.isNotEmpty;
+
+            final totalWidth = visible.fold<double>(
+              showCheckboxes ? _kCheckboxWidth : 0.0,
+              (sum, col) =>
+                  sum + (columnWidths[col.fieldKey] ?? col.width ?? 150.0),
+            );
+
+            // When the columns don't fill the available viewport, stretch the
+            // last visible column so the grid's background/row highlights
+            // reach the full width instead of leaving a blank gap — this is
+            // what keeps the body/header in sync with the selection summary
+            // bar, which always spans the full width.
+            var effectiveColumnWidths = columnWidths;
+            var effectiveTotalWidth = totalWidth;
+            final viewportWidth = viewportConstraints.maxWidth;
+            if (viewportWidth.isFinite &&
+                totalWidth < viewportWidth &&
+                visible.isNotEmpty) {
+              final lastField = visible.last.fieldKey;
+              final lastWidth =
+                  columnWidths[lastField] ?? visible.last.width ?? 150.0;
+              effectiveColumnWidths = {
+                ...columnWidths,
+                lastField: lastWidth + (viewportWidth - totalWidth),
+              };
+              effectiveTotalWidth = viewportWidth;
+            }
+
+            final verticalList = Scrollbar(
+              controller: verticalScrollController,
+              thumbVisibility: true,
+              child: ListView.builder(
+                controller: verticalScrollController,
+                itemCount: rows.length,
+                itemExtent: density.rowHeight,
+                itemBuilder: (context, index) {
+                  final row = rows[index];
+                  final isSelected = controller.isSelected(row.data);
+                  return RepaintBoundary(
+                    child: _TablexBodyRow<TRow>(
+                      key: ValueKey(row.key),
+                      row: row,
+                      rowIndex: index,
+                      visible: visible,
+                      columnWidths: effectiveColumnWidths,
+                      state: state,
+                      showCheckboxes: showCheckboxes,
+                      isSelected: isSelected,
+                      density: density,
+                      theme: theme,
+                      selectionMode: selectionMode,
+                      onRowTap: onRowTap,
+                      onRowDoubleTap: onRowDoubleTap,
+                      onToggleSelection: () {
+                        controller.toggleRowSelection(row.data);
+                        onSelectionChanged?.call(controller.selectedRows);
+                      },
+                      onBeginEdit: (field) =>
+                          controller.beginEdit(index, field),
+                      onCancelEdit: controller.cancelEdit,
+                      onEditConfirm: (field, newValue) {
+                        _commitEdit(
+                          controller: controller,
+                          visible: visible,
+                          rows: rows,
+                          rowIndex: index,
+                          field: field,
+                          newValue: newValue,
+                        );
+                      },
+                      onNavigate: (field, newValue, direction) {
+                        _commitEdit(
+                          controller: controller,
+                          visible: visible,
+                          rows: rows,
+                          rowIndex: index,
+                          field: field,
+                          newValue: newValue,
+                        );
+                        final newRow = _resolveNavTarget(
+                          controller: controller,
+                          visible: visible,
+                          rowIndex: index,
+                          field: field,
+                          direction: direction,
+                        );
+                        if (newRow != null) {
+                          controller.beginEdit(newRow.$1, newRow.$2);
+                          _scrollToRow(
+                            rowIndex: newRow.$1,
+                            density: density,
+                            scrollController: verticalScrollController,
+                          );
+                        }
+                      },
+                    ),
+                  );
+                },
+              ),
+            );
+
+            return Scrollbar(
+              controller: horizontalScrollController,
+              thumbVisibility: true,
+              notificationPredicate: (n) => n.depth == 1,
+              child: SingleChildScrollView(
+                controller: horizontalScrollController,
+                scrollDirection: Axis.horizontal,
+                child:
+                    SizedBox(width: effectiveTotalWidth, child: verticalList),
+              ),
+            );
+          },
         );
       },
     );

@@ -43,7 +43,8 @@ class TablexColumnGroupHeader<TRow> extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: density.headerHeight,
-      color: theme.headerBackgroundColor,
+      decoration: BoxDecoration(
+          color: theme.headerBackgroundColor, borderRadius: theme.borderRadius),
       child: Row(
         children: groups.map((g) {
           final w = _groupWidth(g);

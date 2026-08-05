@@ -25,11 +25,19 @@ class TablexHeaderRow<TRow> extends StatelessWidget {
     this.totalCount = 0,
     this.onSelectAll,
     this.onDeselectAll,
+    this.viewportWidth,
   });
 
   final List<TablexColumnBase<TRow>> columns;
   final Map<String, double> columnWidths;
   final Set<String> hiddenFields;
+
+  /// Width of the visible scroll viewport, measured outside the horizontal
+  /// [SingleChildScrollView] that hosts this row. When the sum of column
+  /// widths is narrower than this, the last visible column is stretched to
+  /// fill the gap so the header matches the body and the full-width
+  /// selection summary bar instead of leaving a blank strip.
+  final double? viewportWidth;
   final TablexColumnSort? sort;
   final TablexDensity density;
   final TablexThemeData theme;
@@ -50,37 +58,72 @@ class TablexHeaderRow<TRow> extends StatelessWidget {
         .where((c) => !c.hide && !hiddenFields.contains(c.fieldKey))
         .toList();
 
-    final showCheckbox = selectionMode == TablexSelectionMode.multiple;
+    final showCheckbox =
+        selectionMode == TablexSelectionMode.multiple && visible.isNotEmpty;
 
+    Map<String, double> effectiveColumnWidths = columnWidths;
+    final vw = viewportWidth;
+    if (vw != null && vw.isFinite && visible.isNotEmpty) {
+      final checkboxWidth = showCheckbox ? _kCheckboxWidth : 0.0;
+      final totalWidth = visible.fold<double>(
+        checkboxWidth,
+        (sum, col) => sum + (columnWidths[col.fieldKey] ?? col.width ?? 150.0),
+      );
+      if (totalWidth < vw) {
+        final lastField = visible.last.fieldKey;
+        final lastWidth =
+            columnWidths[lastField] ?? visible.last.width ?? 150.0;
+        effectiveColumnWidths = {
+          ...columnWidths,
+          lastField: lastWidth + (vw - totalWidth),
+        };
+      }
+    }
     return Container(
       height: density.headerHeight,
-      color: theme.headerBackgroundColor,
-      child: Row(
+      decoration: BoxDecoration(
+          color: theme.headerBackgroundColor, borderRadius: theme.borderRadius),
+      child: Stack(
         children: [
-          if (showCheckbox)
-            _CheckboxHeaderCell(
-              selectedCount: selectedCount,
-              totalCount: totalCount,
-              density: density,
-              theme: theme,
-              onSelectAll: onSelectAll,
-              onDeselectAll: onDeselectAll,
+          Row(
+            children: [
+              if (showCheckbox)
+                _CheckboxHeaderCell(
+                  selectedCount: selectedCount,
+                  totalCount: totalCount,
+                  density: density,
+                  theme: theme,
+                  onSelectAll: onSelectAll,
+                  onDeselectAll: onDeselectAll,
+                ),
+              ...visible.map((col) {
+                final w =
+                    effectiveColumnWidths[col.fieldKey] ?? col.width ?? 150.0;
+                return _HeaderCell<TRow>(
+                  key: ValueKey(col.fieldKey),
+                  column: col,
+                  width: w,
+                  sort: sort,
+                  theme: theme,
+                  density: density,
+                  onSort: onSort,
+                  onResizeUpdate: onResizeUpdate,
+                  onResizeEnd: onResizeEnd,
+                  onReorder: onReorder,
+                );
+              }),
+            ],
+          ), // Bottom border
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Divider(
+              height: 1,
+              thickness: 1,
+              color: theme.borderColor,
             ),
-          ...visible.map((col) {
-            final w = columnWidths[col.fieldKey] ?? col.width ?? 150.0;
-            return _HeaderCell<TRow>(
-              key: ValueKey(col.fieldKey),
-              column: col,
-              width: w,
-              sort: sort,
-              theme: theme,
-              density: density,
-              onSort: onSort,
-              onResizeUpdate: onResizeUpdate,
-              onResizeEnd: onResizeEnd,
-              onReorder: onReorder,
-            );
-          }),
+          ),
         ],
       ),
     );
@@ -128,10 +171,8 @@ class _CheckboxHeaderCell extends StatelessWidget {
           onSelectAll?.call();
         }
       },
-      child: Container(
+      child: SizedBox(
         width: _kCheckboxWidth,
-        height: density.headerHeight,
-        color: theme.headerBackgroundColor,
         child: Center(
           child: IgnorePointer(
             child: SizedBox(
@@ -292,17 +333,6 @@ class _HeaderCellState<TRow> extends State<_HeaderCell<TRow>> {
                 ),
               ),
             ),
-          // Bottom border
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Divider(
-              height: 1,
-              thickness: 1,
-              color: widget.theme.borderColor,
-            ),
-          ),
         ],
       ),
     );

@@ -126,7 +126,9 @@ class _SelectionSummaryHeaderState<T>
 
     return Container(
       height: widget.density.headerHeight,
-      color: widget.theme.selectionSummaryBarColor,
+      decoration: BoxDecoration(
+          color: widget.theme.selectionSummaryBarColor,
+          borderRadius: widget.theme.borderRadius),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
