@@ -122,8 +122,11 @@ class TablexCellWidget<TRow> extends StatelessWidget {
         column.formatValueRaw(rawValue) ?? rawValue?.toString() ?? '';
 
     if (type == TablexColumnType.number) {
+      // Numbers right-align by default for readability, but an explicit
+      // column.textAlign always wins.
       return _textCell(formatted, context,
-          endAlign: true, selectable: theme.enableTextSelection);
+          endAlign: column.textAlign == null,
+          selectable: theme.enableTextSelection);
     }
 
     return _textCell(formatted, context, selectable: theme.enableTextSelection);
@@ -139,19 +142,27 @@ class TablexCellWidget<TRow> extends StatelessWidget {
     final isTextRtl = _isRtlText(text);
     final textDirection = isTextRtl ? TextDirection.rtl : null;
 
+    final resolvedColumnAlign = column.textAlign ?? theme.defaultCellAlignment;
+
     TextAlign align;
     if (endAlign) {
       align = isAppLtr ? TextAlign.right : TextAlign.left;
-    } else if (column.textAlign == TextAlign.start) {
+    } else if (resolvedColumnAlign == TextAlign.start) {
       // RTL text in an LTR app should sit at the right (its natural start edge).
       align = isTextRtl
           ? TextAlign.right
           : (isAppLtr ? TextAlign.left : TextAlign.right);
-    } else if (column.textAlign == TextAlign.end) {
+    } else if (resolvedColumnAlign == TextAlign.end) {
       align = isAppLtr ? TextAlign.right : TextAlign.left;
     } else {
-      align = column.textAlign;
+      align = resolvedColumnAlign;
     }
+
+    final Alignment boxAlignment = switch (align) {
+      TextAlign.left => Alignment.centerLeft,
+      TextAlign.right => Alignment.centerRight,
+      _ => Alignment.center,
+    };
 
     final style =
         theme.cellTextStyle?.copyWith(overflow: TextOverflow.ellipsis) ??
@@ -159,7 +170,7 @@ class TablexCellWidget<TRow> extends StatelessWidget {
     return Padding(
       padding: theme.cellPadding,
       child: Align(
-        alignment: AlignmentDirectional.center,
+        alignment: boxAlignment,
         child: selectable
             ? SelectableText(
                 text,
@@ -205,7 +216,7 @@ class TablexCellWidget<TRow> extends StatelessWidget {
     return _DefaultEditCell(
       rawValue: rawValue,
       columnType: column.type,
-      textAlign: column.textAlign,
+      textAlign: column.textAlign ?? theme.defaultCellAlignment,
       theme: theme,
       onSubmit: (v) => onEditConfirm?.call(v),
       onCancel: () => onEditCancel?.call(),

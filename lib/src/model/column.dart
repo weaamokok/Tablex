@@ -20,7 +20,7 @@ abstract class TablexColumnBase<TRow> {
     this.enableFiltering = true,
     this.enableEditing = false,
     this.enableContextMenu = true,
-    this.textAlign = TextAlign.start,
+    this.textAlign,
     this.backgroundColor,
     this.emptyCellPlaceholder,
     this.showEmptyAsDash = true,
@@ -73,8 +73,9 @@ abstract class TablexColumnBase<TRow> {
   /// in this column.
   final bool enableContextMenu;
 
-  /// Horizontal text alignment inside the cell. Defaults to [TextAlign.start].
-  final TextAlign textAlign;
+  /// Horizontal text alignment inside the cell. When `null`, falls back to
+  /// [TablexThemeData.defaultCellAlignment].
+  final TextAlign? textAlign;
 
   /// Optional background colour applied to every cell in this column.
   final Color? backgroundColor;
@@ -184,7 +185,7 @@ class TablexColumn<TRow, TValue> extends TablexColumnBase<TRow> {
     super.enableFiltering = true,
     super.enableEditing = false,
     super.enableContextMenu = true,
-    super.textAlign = TextAlign.start,
+    super.textAlign,
     super.backgroundColor,
     super.emptyCellPlaceholder,
     super.showEmptyAsDash = true,

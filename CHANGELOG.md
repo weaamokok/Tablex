@@ -1,3 +1,21 @@
+## 0.7.7
+
+### New features
+
+* **`TablexThemeData.defaultCellAlignment` — grid-wide default cell alignment** — sets the horizontal alignment used for cell text when a column doesn't specify its own `textAlign`. Defaults to `TextAlign.center`. A column's own `TablexColumnBase.textAlign` (now nullable) always overrides the theme default when set.
+
+  ```dart
+  TablexThemeData(defaultCellAlignment: TextAlign.start)
+  ```
+
+### Bug fixes
+
+* **`textAlign` now actually affects cell alignment** — the default text-cell renderer wrapped content in an `Align` widget with a hardcoded `AlignmentDirectional.center`, so `TablexColumnBase.textAlign` (start/center/end) never had any visible effect on single-line cell text. The alignment is now resolved from the column/theme setting and actually applied. Note this also changes the *visual default* from left-aligned to centered — set `defaultCellAlignment: TextAlign.start` to keep the old look.
+
+* **Number columns respect an explicit `textAlign`** — number-typed columns still right-align by default, but now only when the column doesn't set `textAlign` explicitly; an explicit setting is no longer silently overridden.
+
+---
+
 ## 0.7.6
 
 ### Bug fixes

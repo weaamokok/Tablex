@@ -66,7 +66,7 @@ Double-tap any cell to edit it. Tab / Shift+Tab moves between editable columns; 
 
 ```yaml
 dependencies:
-  tablex: ^0.7.6
+  tablex: ^0.7.7
 ```
 
 ---

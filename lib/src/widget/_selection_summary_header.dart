@@ -6,14 +6,14 @@ part of 'tablex_widget.dart';
 
 class _SelectionSummaryHeader<T> extends StatefulWidget {
   const _SelectionSummaryHeader({
-    required this.selectedCount,
-    required this.selectedItems,
-    required this.density,
-    required this.theme,
-    required this.onClear,
+    this.selectedCount,
+    this.selectedItems,
+    this.density,
+    this.theme,
+    this.onClear,
     required this.columns,
     required this.controller,
-    required this.selectionMode,
+    this.selectionMode = TablexSelectionMode.single,
     this.actions,
     this.includeClearAction = true,
     this.onExportSelectedCsv,
@@ -21,11 +21,11 @@ class _SelectionSummaryHeader<T> extends StatefulWidget {
     this.onExportSelectedPdf,
   });
 
-  final int selectedCount;
-  final List<T> selectedItems;
-  final TablexDensity density;
-  final TablexThemeData theme;
-  final VoidCallback onClear;
+  final int? selectedCount;
+  final List<T>? selectedItems;
+  final TablexDensity? density;
+  final TablexThemeData? theme;
+  final VoidCallback? onClear;
   final List<TablexColumnBase<T>> columns;
   final TablexController<T> controller;
   final TablexSelectionMode selectionMode;
@@ -122,13 +122,14 @@ class _SelectionSummaryHeaderState<T>
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final strings = tablexStrings(context);
-    final cb = widget.theme.checkboxTheme ?? const TablexCheckboxTheme();
-
+    final cb = widget.theme?.checkboxTheme ?? const TablexCheckboxTheme();
+    final selectedCount = widget.selectedCount;
+    final selectedItems = widget.selectedItems;
     return Container(
-      height: widget.density.headerHeight,
+      height: widget.density?.headerHeight,
       decoration: BoxDecoration(
-          color: widget.theme.selectionSummaryBarColor,
-          borderRadius: widget.theme.borderRadius),
+          color: widget.theme?.selectionSummaryBarColor,
+          borderRadius: widget.theme?.borderRadius),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
@@ -138,7 +139,7 @@ class _SelectionSummaryHeaderState<T>
               height: cb.size,
               child: Checkbox(
                 tristate: true,
-                value: widget.selectedCount > 0 &&
+                value: (widget.selectedCount ?? 0) > 0 &&
                         widget.selectedCount == widget.controller.rows.length
                     ? true
                     : null,
@@ -164,12 +165,13 @@ class _SelectionSummaryHeaderState<T>
             const SizedBox(width: 4),
           ],
           const SizedBox(width: 20),
-          Text(
-            strings.selected(widget.selectedCount),
-            style: widget.theme.headerTextStyle?.copyWith(
-              color: cs.onSurface,
+          if (selectedCount != null)
+            Text(
+              strings.selected(selectedCount),
+              style: widget.theme?.headerTextStyle?.copyWith(
+                color: cs.onSurface,
+              ),
             ),
-          ),
           const Spacer(),
           if (widget.actions != null)
             ...widget.actions!.map(
@@ -179,7 +181,9 @@ class _SelectionSummaryHeaderState<T>
                 style: TextButton.styleFrom(
                   foregroundColor: cs.onSurfaceVariant,
                 ),
-                onPressed: () => action.onPressed(widget.selectedItems),
+                onPressed: () => selectedItems != null
+                    ? action.onPressed(selectedItems)
+                    : null,
               ),
             ),
           IconButton(

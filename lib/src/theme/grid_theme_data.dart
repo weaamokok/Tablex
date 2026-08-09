@@ -153,6 +153,7 @@ class TablexThemeData {
     this.emptyCellPlaceholder,
     this.pageSizeSelectorIcon,
     this.showPageSizeSelector = true,
+    this.defaultCellAlignment = TextAlign.center,
   });
 
   /// Background colour of the data area. Defaults to [ColorScheme.surface].
@@ -257,6 +258,17 @@ class TablexThemeData {
   /// switched to opaque cursor tokens.
   final bool showPageSizeSelector;
 
+  /// Grid-wide default horizontal alignment for cell content. Defaults to
+  /// [TextAlign.center].
+  ///
+  /// Applies whenever a column doesn't set [TablexColumnBase.textAlign]
+  /// explicitly — the column-level setting always wins when present.
+  ///
+  /// ```dart
+  /// TablexThemeData(defaultCellAlignment: TextAlign.start)
+  /// ```
+  final TextAlign defaultCellAlignment;
+
   /// Decoration applied to the default inline-edit text field.
   ///
   /// When `null` the grid uses a compact underline decoration:
@@ -311,6 +323,7 @@ class TablexThemeData {
       emptyCellPlaceholder: emptyCellPlaceholder,
       pageSizeSelectorIcon: pageSizeSelectorIcon,
       showPageSizeSelector: showPageSizeSelector,
+      defaultCellAlignment: defaultCellAlignment,
     );
   }
 
@@ -339,6 +352,7 @@ class TablexThemeData {
     bool? enableTextSelection,
     IconData? pageSizeSelectorIcon,
     bool? showPageSizeSelector,
+    TextAlign? defaultCellAlignment,
   }) {
     return TablexThemeData(
       backgroundColor: backgroundColor ?? this.backgroundColor,
@@ -372,6 +386,7 @@ class TablexThemeData {
       emptyCellPlaceholder: emptyCellPlaceholder ?? this.emptyCellPlaceholder,
       pageSizeSelectorIcon: pageSizeSelectorIcon ?? this.pageSizeSelectorIcon,
       showPageSizeSelector: showPageSizeSelector ?? this.showPageSizeSelector,
+      defaultCellAlignment: defaultCellAlignment ?? this.defaultCellAlignment,
     );
   }
 }

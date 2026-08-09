@@ -9,15 +9,15 @@ import '../model/enums.dart';
 class TablexCellContext {
   const TablexCellContext({
     required this.rowIndex,
-    required this.isHovered,
-    required this.isSelected,
-    required this.isEditing,
-    required this.textDirection,
-    required this.density,
-    required this.columnField,
-    required this.columnTitle,
-    required this.columnType,
-    required this.enableTextSelection,
+    this.isHovered = false,
+    this.isSelected = false,
+    this.isEditing = false,
+    this.textDirection,
+    this.density,
+    this.columnField,
+    this.columnTitle,
+    this.columnType,
+    this.enableTextSelection = true,
   });
 
   /// Zero-based index of this row in the current page / visible set.
@@ -33,19 +33,19 @@ class TablexCellContext {
   final bool isEditing;
 
   /// Resolved text direction from the widget tree (LTR or RTL).
-  final TextDirection textDirection;
+  final TextDirection? textDirection;
 
   /// The active row density — useful for adjusting padding or icon sizes.
-  final TablexDensity density;
+  final TablexDensity? density;
 
   /// The [TablexColumnBase.fieldKey] of the owning column.
-  final String columnField;
+  final String? columnField;
 
   /// The [TablexColumnBase.title] of the owning column.
-  final String columnTitle;
+  final String? columnTitle;
 
   /// The [TablexColumnBase.type] of the owning column.
-  final TablexColumnType columnType;
+  final TablexColumnType? columnType;
 
   /// Whether cell text should be rendered as selectable (web default: `true`).
   ///
