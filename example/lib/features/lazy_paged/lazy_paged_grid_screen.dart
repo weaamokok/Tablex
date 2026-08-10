@@ -70,7 +70,8 @@ class _LazyPagedGridScreenState extends State<LazyPagedGridScreen> {
       rows: page,
       totalRows: total,
       // Return a nextCursor only when more rows follow — this activates cursor
-      // mode in the footer and switches the page indicator to _CursorPageIndicator.
+      // mode in the footer, which shows clickable page pills bounded to the
+      // highest known page instead of the offset-mode "1 ... N" range.
       nextCursor: nextStart < total ? nextStart.toString() : null,
       prevCursor: start > 0 ? prevStart.toString() : null,
       meta: TablexResponseMeta(

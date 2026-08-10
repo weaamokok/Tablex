@@ -32,6 +32,7 @@ class TablexPaginationInfo {
     required this.setPageSize,
     this.isCursorMode = false,
     this.hasNextPage,
+    this.maxKnownPage = 0,
   });
 
   /// Current 1-based page number.
@@ -68,6 +69,14 @@ class TablexPaginationInfo {
   /// When `null`, inferred as [page] < [totalPages] (offset mode).
   /// Always set explicitly in cursor mode.
   final bool? hasNextPage;
+
+  /// Highest page number reachable via [goToPage] without an unknown jump.
+  ///
+  /// In offset mode this equals [totalPages]. In cursor mode it's the
+  /// number of pages whose cursor is already known (i.e. pages already
+  /// visited, plus the immediate next page once its cursor has arrived) —
+  /// use it instead of [totalPages] to size a page-pill row in cursor mode.
+  final int maxKnownPage;
 }
 
 /// Builder that fully replaces the default pagination footer.
@@ -548,6 +557,7 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
           setPageSize: widget.controller.setPageSize,
           isCursorMode: _cursorMode,
           hasNextPage: hasNext,
+          maxKnownPage: _cursorMode ? _cursorHistory.length : _totalPages,
         );
 
         if (widget.footerBuilder != null) {
@@ -591,7 +601,10 @@ class _DefaultPaginationFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalPages = info.totalPages <= 0 ? 1 : info.totalPages;
-    final currentPage = info.page.clamp(1, totalPages);
+    final maxKnownPage = info.isCursorMode
+        ? (info.maxKnownPage <= 0 ? 1 : info.maxKnownPage)
+        : totalPages;
+    final currentPage = info.page.clamp(1, maxKnownPage);
     final hasPrev = currentPage > 1;
     final hasNext = info.hasNextPage ?? (currentPage < totalPages);
 
@@ -638,7 +651,13 @@ class _DefaultPaginationFooter extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         if (info.isCursorMode)
-                          _CursorPageIndicator(page: currentPage)
+                          ..._buildPagePills(
+                            context,
+                            currentPage,
+                            maxKnownPage,
+                            info,
+                            unknownTotal: hasNext,
+                          )
                         else if (enablePageJump)
                           _PageJumpIndicator(info: info, totalPages: totalPages)
                         else
@@ -684,26 +703,37 @@ class _DefaultPaginationFooter extends StatelessWidget {
     );
   }
 
+  /// Builds a windowed row of page pills for [current] out of [total] pages.
+  ///
+  /// When [unknownTotal] is `true` (cursor mode), [total] is only the
+  /// highest *known* page — not a real last page — so the trailing side
+  /// never gets a clickable "jump to last" pill. Instead, once the window
+  /// reaches that known frontier, a bare ellipsis hints that more pages may
+  /// exist beyond it without claiming to know how many.
   List<Widget> _buildPagePills(
     BuildContext context,
     int current,
     int total,
-    TablexPaginationInfo info,
-  ) {
-    if (total <= 1) return [];
+    TablexPaginationInfo info, {
+    bool unknownTotal = false,
+  }) {
+    if (total <= 1 && !unknownTotal) return [];
+    final effectiveTotal = total < 1 ? 1 : total;
 
     const window = 3;
     var start = current - (window ~/ 2);
     if (start < 1) start = 1;
     var end = start + window - 1;
-    if (end > total) {
-      end = total;
-      start = (end - window + 1).clamp(1, total);
+    if (end > effectiveTotal) {
+      end = effectiveTotal;
+      start = (end - window + 1).clamp(1, effectiveTotal);
     }
 
     final pages = [for (var p = start; p <= end; p++) p];
     final showLeading = pages.first > 1;
-    final showTrailing = pages.last < total;
+    final atFrontier = pages.last >= effectiveTotal;
+    final showTrailing = !unknownTotal && pages.last < effectiveTotal;
+    final showFrontierHint = unknownTotal && atFrontier;
 
     return [
       if (showLeading) ...[
@@ -717,10 +747,11 @@ class _DefaultPaginationFooter extends StatelessWidget {
       if (showTrailing) ...[
         const _Ellipsis(),
         _PagePill(
-            page: total,
-            isActive: total == current,
-            onPressed: () => info.goToPage(total)),
+            page: effectiveTotal,
+            isActive: effectiveTotal == current,
+            onPressed: () => info.goToPage(effectiveTotal)),
       ],
+      if (showFrontierHint) const _Ellipsis(),
     ];
   }
 }
@@ -841,35 +872,6 @@ class _Ellipsis extends StatelessWidget {
         size: 16,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
-    );
-  }
-}
-
-// ============================================================================
-// Cursor mode: current page number indicator (non-interactive)
-// ============================================================================
-
-class _CursorPageIndicator extends StatelessWidget {
-  const _CursorPageIndicator({required this.page});
-
-  final int page;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final style = Theme.of(context).textTheme.labelSmall;
-
-    return Container(
-      height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
-        border: Border.all(color: cs.outlineVariant),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      alignment: Alignment.center,
-      child: Text(page.toString(),
-          style: style?.copyWith(fontWeight: FontWeight.w600)),
     );
   }
 }
