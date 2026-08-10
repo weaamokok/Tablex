@@ -1,3 +1,19 @@
+## 0.7.8
+
+### New features
+
+* **Clickable page-number pills in cursor-mode pagination** — the footer's cursor-mode indicator has been replaced with the same windowed page-pill row (`[1] ··· [4][5][6] ···`) used in offset mode, letting users jump directly to any already-visited page instead of only stepping via Previous / Next. `_CursorPageIndicator` is removed.
+  * `TablexPaginationInfo` gains `maxKnownPage` — the highest page reachable via `goToPage` without an unknown jump. In offset mode it equals `totalPages`; in cursor mode it tracks the number of pages whose cursor has already been resolved (visited pages, plus the next page once its cursor arrives).
+  * Since the true last page is unknown in cursor mode, the pill window is bounded by `maxKnownPage` rather than `totalPages`, and a bare ellipsis (no trailing "jump to last" pill) hints that further pages may exist once the window reaches that frontier.
+
+### API additions
+
+| Symbol | Kind | Notes |
+|---|---|---|
+| `TablexPaginationInfo.maxKnownPage` | field | Highest page reachable via `goToPage`; drives page-pill windowing in cursor mode |
+
+---
+
 ## 0.7.7
 
 ### New features
