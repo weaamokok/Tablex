@@ -663,6 +663,7 @@ class _DefaultPaginationFooter extends StatelessWidget {
                             maxKnownPage,
                             info,
                             unknownTotal: hasNext,
+                            isCursorMode: true,
                           )
                         else if (enablePageJump)
                           _PageJumpIndicator(info: info, totalPages: totalPages)
@@ -722,8 +723,16 @@ class _DefaultPaginationFooter extends StatelessWidget {
     int total,
     TablexPaginationInfo info, {
     bool unknownTotal = false,
+    bool isCursorMode = false,
   }) {
-    if (total <= 1 && !unknownTotal) return [];
+    // Offset mode hides pagination entirely only for a genuinely empty
+    // result. A single page that still has rows is page 1 of real data, so
+    // it keeps its "1" pill — there's just nothing to page *to*. Cursor mode
+    // always shows the "1" pill once resolved to a single, final page,
+    // since it has no "N of totalPages" label to fall back on.
+    if (total <= 1 && !unknownTotal && !isCursorMode && info.totalRows <= 0) {
+      return [];
+    }
     final effectiveTotal = total < 1 ? 1 : total;
 
     const window = 3;

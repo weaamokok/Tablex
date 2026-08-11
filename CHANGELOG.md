@@ -1,4 +1,4 @@
-## 0.7.9
+## 0.7.10
 
 ### New features
 
@@ -9,6 +9,8 @@
 ### Bug fixes
 
 * **Cursor mode now infers end-of-data from a short page** — if a fetch returns fewer rows than the requested `pageSize`, that page is now always treated as the last one, even if the result also included a `nextCursor`. Previously a stale or mistakenly-set `nextCursor` on a short page could leave the footer offering a "Next" step into an empty page.
+
+* **Page pills no longer hidden just because there's one page — only when there's no data** — the pill row previously collapsed to nothing whenever there was a single page, in both offset and cursor mode, even if that page had rows on it. It now only hides for a genuinely empty result (`totalRows <= 0`); a single page of real data always keeps its "1" pill. Cursor mode goes further and always shows the "1" pill on a resolved single, final page, since it has no `totalRows` guarantee or "N of totalPages" label to fall back on.
 
 ### API additions
 
