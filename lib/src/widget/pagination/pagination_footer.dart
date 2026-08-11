@@ -441,8 +441,14 @@ class _TablexPaginationFooterState<T> extends State<TablexPaginationFooter<T>> {
       );
     }
 
+    // A short page — fewer rows than the requested pageSize — is a reliable
+    // sign there's nothing left to fetch, even if the API also handed back a
+    // (possibly stale or mistaken) nextCursor. Treat it as the end.
+    final pageSize = widget.controller.state.query.pageSize;
+    final shortPage = pageSize > 0 && result.rows.length < pageSize;
+
     // Advance cursor history only when moving forward past known history.
-    final nextCursor = result.nextCursor;
+    final nextCursor = shortPage ? null : result.nextCursor;
     _cursorHasMore = nextCursor != null;
     if (nextCursor != null && _cursorPage >= _cursorHistory.length) {
       _cursorHistory.add(nextCursor);
