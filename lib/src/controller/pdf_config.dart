@@ -7,7 +7,8 @@ import 'package:pdf/widgets.dart' as pw;
 /// The built-in PDF fonts (Helvetica / Times) only cover the Latin character
 /// set. Supply font data whenever your table contains Arabic, Hebrew, CJK, or
 /// any other non-Latin script. RTL direction is detected automatically from
-/// cell content — no manual flag needed.
+/// cell content by default; set [textDirection] to override that and force
+/// a specific direction instead.
 ///
 /// **Two ways to provide a font:**
 ///
@@ -36,6 +37,7 @@ class TablexPdfConfig {
     this.fontBoldData,
     this.font,
     this.fontBold,
+    this.textDirection,
   });
 
   /// Raw TTF bytes for body text, loaded via `rootBundle.load()`.
@@ -57,4 +59,12 @@ class TablexPdfConfig {
   ///
   /// Takes precedence over [fontBoldData]. Falls back to [font] when `null`.
   final pw.Font? fontBold;
+
+  /// Forces the PDF's text direction/alignment, overriding automatic
+  /// content-based RTL detection. Pass the app's current direction at
+  /// export time (e.g. `Directionality.of(context)`) so the exported
+  /// document matches what the user is looking at, regardless of what
+  /// scripts appear in the cell data. Leave `null` to keep the existing
+  /// auto-detect-from-content behavior.
+  final pw.TextDirection? textDirection;
 }

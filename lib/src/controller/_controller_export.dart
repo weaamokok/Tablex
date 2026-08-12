@@ -161,7 +161,8 @@ String _cellValueToString(CellValue? value) {
 extension TablexControllerExport<T> on TablexController<T> {
   // ── Private helpers ─────────────────────────────────────────────────────────
 
-  List<TablexColumnBase<T>> _visibleColumns(List<TablexColumnBase<T>> columns) =>
+  List<TablexColumnBase<T>> _visibleColumns(
+          List<TablexColumnBase<T>> columns) =>
       columns
           .where((c) =>
               !c.hide &&
@@ -258,11 +259,14 @@ extension TablexControllerExport<T> on TablexController<T> {
             ? pw.Font.ttf(config.fontBoldData!)
             : cellFont);
 
-    // Auto-detect RTL from cell content (same logic as grid cells).
-    final isRtl = rows.any((row) => row.any(_isPdfRtlText)) ||
-        headers.any(_isPdfRtlText);
-    final textDirection =
-        isRtl ? pw.TextDirection.rtl : pw.TextDirection.ltr;
+    // Use caller-supplied direction if given; otherwise auto-detect from
+    // content (same logic as grid cells).
+    final isRtl = config.textDirection != null
+        ? config.textDirection == pw.TextDirection.rtl
+        : (rows.any((row) => row.any(_isPdfRtlText)) ||
+            headers.any(_isPdfRtlText));
+    final textDirection = config.textDirection ??
+        (isRtl ? pw.TextDirection.rtl : pw.TextDirection.ltr);
 
     final doc = pw.Document();
     final pageFormat =
@@ -418,8 +422,8 @@ extension TablexControllerExport<T> on TablexController<T> {
     String sheetName = 'Sheet1',
   }) {
     _checkDisposed();
-    return _buildExcel(
-        _visibleColumns(columns), _keysForItems(_state.selectedRows), sheetName);
+    return _buildExcel(_visibleColumns(columns),
+        _keysForItems(_state.selectedRows), sheetName);
   }
 
   /// Serialises **all currently loaded rows** to a PDF byte array.
@@ -500,8 +504,7 @@ extension TablexControllerExport<T> on TablexController<T> {
         ? dataRows.first
             .map((c) => _cellValueToString(c?.value))
             .toList(growable: false)
-        : (fieldKeys ??
-            List.generate(dataRows.first.length, (i) => 'col$i'));
+        : (fieldKeys ?? List.generate(dataRows.first.length, (i) => 'col$i'));
     final dataStart = hasHeader ? 1 : 0;
 
     if (!append) {
