@@ -1,3 +1,18 @@
+## 0.7.12
+
+### Breaking changes
+
+* **`TablexPdfConfig.textDirection` renamed to `isRtl` and retyped to `bool?`** — the 0.7.11 field took a `pw.TextDirection`, which forced any app calling it to add a direct dependency on the `pdf` package just to set a direction override. `isRtl` carries the same meaning (`null` = auto-detect from content, `true`/`false` = force RTL/LTR) using a plain `bool`, so no extra dependency is needed:
+
+  ```dart
+  controller.pdfConfig = TablexPdfConfig(
+    fontData: await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
+    isRtl: Directionality.of(context) == TextDirection.rtl,
+  );
+  ```
+
+---
+
 ## 0.7.11
 
 ### New features

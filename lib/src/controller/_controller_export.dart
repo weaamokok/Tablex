@@ -261,12 +261,10 @@ extension TablexControllerExport<T> on TablexController<T> {
 
     // Use caller-supplied direction if given; otherwise auto-detect from
     // content (same logic as grid cells).
-    final isRtl = config.textDirection != null
-        ? config.textDirection == pw.TextDirection.rtl
-        : (rows.any((row) => row.any(_isPdfRtlText)) ||
+    final isRtl = config.isRtl ??
+        (rows.any((row) => row.any(_isPdfRtlText)) ||
             headers.any(_isPdfRtlText));
-    final textDirection = config.textDirection ??
-        (isRtl ? pw.TextDirection.rtl : pw.TextDirection.ltr);
+    final textDirection = isRtl ? pw.TextDirection.rtl : pw.TextDirection.ltr;
 
     final doc = pw.Document();
     final pageFormat =
